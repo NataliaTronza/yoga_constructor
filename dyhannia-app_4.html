@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Дихання — конструктор йога-послідовностей</title>
+<meta name="theme-color" content="#F6F1EC">
+<meta name="description" content="Конструктор йога-послідовностей з таймером, сигналами переходу і звуковим тлом.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Дихання">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600&family=Karla:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --porcelain:#F6F1EC;
+  --porcelain-deep:#EDE5DC;
+  --ink:#2E2430;
+  --ink-soft:#6E6270;
+  --ink-faint:#A49AA6;
+  --lilac:#C9BFEA;
+  --peach:#F6C9A8;
+  --sage:#A8CFC0;
+  --sky:#A9C7E8;
+  --rose:#E8859B;
+  --amber:#E8B25A;
+
+  --glass:rgba(255,255,255,.55);
+  --glass-strong:rgba(255,255,255,.72);
+  --glass-line:rgba(255,255,255,.85);
+  --glass-blur:blur(22px) saturate(150%);
+  --shade-1:0 1px 2px rgba(46,36,48,.05);
+  --shade-2:0 10px 30px -12px rgba(46,36,48,.22), 0 2px 6px rgba(46,36,48,.05);
+  --shade-3:0 28px 60px -22px rgba(46,36,48,.35), 0 4px 12px rgba(46,36,48,.07);
+
+  --g-standing:linear-gradient(135deg,#F6C9A8,#E8859B);
+  --g-balance:linear-gradient(135deg,#C9BFEA,#A9C7E8);
+  --g-fold:linear-gradient(135deg,#A8CFC0,#A9C7E8);
+  --g-backbend:linear-gradient(135deg,#F6C9A8,#EFA0A0);
+  --g-twist:linear-gradient(135deg,#C9BFEA,#EFA0A0);
+  --g-seated:linear-gradient(135deg,#EADCC8,#C9BFEA);
+  --g-core:linear-gradient(135deg,#F6C9A8,#E8B25A);
+  --g-rest:linear-gradient(135deg,#A9C7E8,#C9BFEA);
+  --g-flow:linear-gradient(135deg,#A8CFC0,#F6C9A8);
+
+  --r-s:10px; --r-m:18px; --r-l:26px; --r-xl:34px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  min-height:100vh;
+  background:var(--porcelain);
+  color:var(--ink);
+  font-family:'Karla',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-size:16px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+h1,h2,h3,.display{font-family:'Fraunces','Georgia',serif;font-weight:400;letter-spacing:-.015em;line-height:1.05;margin:0}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+button{font-family:inherit;color:inherit;cursor:pointer;border:0;background:none}
+input,select{font-family:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--rose);outline-offset:3px;border-radius:6px}
+
+/* ---------- ambient background ---------- */
+#sky{position:fixed;inset:-15%;z-index:0;pointer-events:none;filter:blur(60px);opacity:.85}
+.blob{position:absolute;border-radius:50%;will-change:transform}
+.b1{width:52vw;height:52vw;left:-8vw;top:-6vw;background:radial-gradient(circle at 35% 35%,rgba(201,191,234,.95),rgba(201,191,234,0) 68%)}
+.b2{width:46vw;height:46vw;right:-6vw;top:6vh;background:radial-gradient(circle at 50% 50%,rgba(246,201,168,.9),rgba(246,201,168,0) 68%)}
+.b3{width:56vw;height:56vw;left:14vw;bottom:-22vh;background:radial-gradient(circle at 50% 50%,rgba(168,207,192,.85),rgba(168,207,192,0) 68%)}
+.b4{width:34vw;height:34vw;right:6vw;bottom:-6vh;background:radial-gradient(circle at 50% 50%,rgba(169,199,232,.85),rgba(169,199,232,0) 68%)}
+#grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.35;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.25'/%3E%3C/svg%3E")}
+
+/* ---------- shell ---------- */
+.wrap{position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:34px 22px 120px}
+.masthead{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:26px}
+.brand h1{font-size:clamp(38px,7vw,68px);font-weight:300}
+.brand .sub{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);margin-top:8px}
+.streak{display:flex;gap:10px}
+.stat{background:var(--glass);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-line);border-radius:var(--r-m);padding:12px 16px;box-shadow:var(--shade-2);min-width:96px}
+.stat b{display:block;font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:400;line-height:1}
+.stat span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
+
+.tabs{display:flex;gap:6px;padding:6px;border-radius:999px;background:var(--glass);border:1px solid var(--glass-line);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:var(--shade-2);width:fit-content;margin-bottom:30px}
+.tab{padding:9px 20px;border-radius:999px;font-size:14px;color:var(--ink-soft);transition:.25s}
+.tab[aria-selected="true"]{background:linear-gradient(135deg,#fff,rgba(255,255,255,.6));color:var(--ink);box-shadow:var(--shade-1),inset 0 1px 0 #fff}
+.view{display:none;animation:rise .5s cubic-bezier(.2,.8,.2,1)}
+.view.on{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---------- cards ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:18px}
+.card{position:relative;border-radius:var(--r-l);padding:22px;overflow:hidden;
+  background:var(--glass);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-line);box-shadow:var(--shade-2);
+  transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s}
+.card::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(160deg,rgba(255,255,255,.6),transparent 42%)}
+.card:hover{transform:translateY(-5px);box-shadow:var(--shade-3)}
+.card .aura{position:absolute;width:150px;height:150px;right:-46px;top:-46px;border-radius:50%;filter:blur(24px);opacity:.55}
+.card h3{font-size:25px;margin-bottom:4px;position:relative}
+.card .meta{font-size:12.5px;color:var(--ink-soft);letter-spacing:.03em;position:relative}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:14px 0 18px;position:relative}
+.chip{font-size:11px;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.62);border:1px solid var(--glass-line);color:var(--ink-soft)}
+.card-actions{display:flex;gap:8px;position:relative}
+.btn{padding:10px 18px;border-radius:999px;font-size:14px;transition:.25s;border:1px solid transparent;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--ink),#4A3B4E);color:#F6F1EC;box-shadow:0 8px 20px -8px rgba(46,36,48,.6)}
+.btn-primary:hover{transform:translateY(-2px)}
+.btn-ghost{background:rgba(255,255,255,.55);border-color:var(--glass-line);color:var(--ink-soft)}
+.btn-ghost:hover{background:#fff;color:var(--ink)}
+.btn-icon{width:38px;height:38px;padding:0;display:grid;place-items:center;border-radius:50%;font-size:15px}
+.card.new-card{display:grid;place-items:center;min-height:190px;border-style:dashed;border-color:rgba(46,36,48,.16);background:rgba(255,255,255,.3);text-align:center}
+.card.new-card .plus{font-size:30px;font-family:'Fraunces',serif;color:var(--ink-soft)}
+
+/* ---------- editor ---------- */
+.editor-top{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:20px}
+.field{background:var(--glass);border:1px solid var(--glass-line);border-radius:var(--r-m);padding:8px 14px;
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:var(--shade-1)}
+.field label{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+.field input,.field select{border:0;background:none;font-size:16px;padding:2px 0;width:100%;outline:none}
+#seqTitle{font-family:'Fraunces',serif;font-size:22px;min-width:240px}
+
+.ribbon-head{display:flex;justify-content:space-between;align-items:baseline;margin:8px 0 12px}
+.ribbon-head .hint{font-size:12.5px;color:var(--ink-faint)}
+#ribbon{display:flex;flex-direction:column;gap:8px;min-height:80px}
+.slab{position:relative;display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:var(--r-m);
+  background:var(--glass-strong);border:1px solid var(--glass-line);box-shadow:var(--shade-2);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  transition:box-shadow .25s,transform .25s}
+.slab.dragging{opacity:.6;transform:scale(.985);box-shadow:var(--shade-3)}
+.slab .grip{width:22px;height:34px;flex:none;display:grid;place-items:center;cursor:grab;touch-action:none;color:var(--ink-faint);border-radius:6px}
+.slab .grip:active{cursor:grabbing}
+.slab .orb{width:38px;height:38px;flex:none;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 6px 14px -6px rgba(46,36,48,.5)}
+.slab .names{flex:1;min-width:0}
+.slab .nm{font-family:'Fraunces',serif;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slab .sa{font-size:11.5px;color:var(--ink-faint);letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dur{display:flex;align-items:center;gap:2px;background:rgba(255,255,255,.6);border:1px solid var(--glass-line);border-radius:999px;padding:3px}
+.dur button{width:26px;height:26px;border-radius:50%;font-size:15px;color:var(--ink-soft);display:grid;place-items:center}
+.dur button:hover{background:#fff;color:var(--ink)}
+.dur input{width:42px;text-align:center;border:0;background:none;font-family:'IBM Plex Mono',monospace;font-size:14px;outline:none}
+.side-toggle{font-size:11px;padding:5px 10px;border-radius:999px;border:1px solid var(--glass-line);background:rgba(255,255,255,.5);color:var(--ink-faint)}
+.side-toggle.on{background:var(--ink);color:var(--porcelain);border-color:transparent}
+.bar{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px}
+.empty{padding:34px;text-align:center;border-radius:var(--r-l);border:1px dashed rgba(46,36,48,.18);color:var(--ink-soft);background:rgba(255,255,255,.3)}
+.editor-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:20px}
+.total{font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--ink-soft)}
+
+/* ---------- pose sheet ---------- */
+.sheet{position:fixed;inset:0;z-index:60;display:none;background:rgba(46,36,48,.28);backdrop-filter:blur(6px)}
+.sheet.on{display:block;animation:fade .3s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet-panel{position:absolute;right:0;top:0;bottom:0;width:min(460px,100%);padding:24px;overflow-y:auto;
+  background:rgba(246,241,236,.82);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  border-left:1px solid var(--glass-line);box-shadow:-20px 0 60px -20px rgba(46,36,48,.4);
+  animation:slide .4s cubic-bezier(.2,.8,.2,1)}
+@keyframes slide{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+.sheet h2{font-size:28px;margin-bottom:14px}
+.search{width:100%;padding:12px 16px;border-radius:999px;border:1px solid var(--glass-line);background:rgba(255,255,255,.7);outline:none;font-size:15px}
+.cats{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}
+.cat{font-size:11.5px;padding:6px 12px;border-radius:999px;border:1px solid var(--glass-line);background:rgba(255,255,255,.5);color:var(--ink-soft)}
+.cat[aria-pressed="true"]{background:var(--ink);color:var(--porcelain);border-color:transparent}
+.pose-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px;border-radius:var(--r-m);transition:.2s}
+.pose-row:hover{background:rgba(255,255,255,.75);box-shadow:var(--shade-1)}
+.pose-row .orb{width:34px;height:34px;border-radius:11px;flex:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
+.pose-row .cue{font-size:11.5px;color:var(--ink-faint);font-style:italic}
+.close-x{position:absolute;right:20px;top:20px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.6);display:grid;place-items:center}
+
+/* ---------- music ---------- */
+.music-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-bottom:26px}
+.track{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-m);background:var(--glass);
+  border:1px solid var(--glass-line);box-shadow:var(--shade-2);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);text-align:left;width:100%}
+.track:hover{background:var(--glass-strong)}
+.track .wave{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:14px;color:#fff;
+  box-shadow:0 8px 18px -8px rgba(46,36,48,.5)}
+.track .t{font-family:'Fraunces',serif;font-size:16px}
+.track .d{font-size:11.5px;color:var(--ink-faint)}
+.track.playing{border-color:var(--rose)}
+.slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+.slider-row label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);width:150px}
+input[type=range]{flex:1;accent-color:var(--rose);height:4px}
+.add-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.add-row input[type=text]{flex:1;min-width:220px;padding:11px 16px;border-radius:999px;border:1px solid var(--glass-line);background:rgba(255,255,255,.7);outline:none}
+.note{font-size:12.5px;color:var(--ink-faint);line-height:1.6;margin-top:12px;max-width:60ch}
+h2.section{font-size:30px;margin:0 0 6px}
+.section-sub{font-size:13px;color:var(--ink-soft);margin-bottom:18px}
+
+/* ---------- player ---------- */
+#player{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;
+  background:radial-gradient(120% 90% at 50% 0%,#FBF7F3,#EFE7DE);overflow:hidden}
+#player.on{display:flex}
+#pSky{position:absolute;inset:-20%;filter:blur(70px);opacity:.9;transition:opacity .8s}
+#pSky div{position:absolute;border-radius:50%;transition:background 1.2s ease,transform 1.4s ease}
+.p-top{position:relative;display:flex;justify-content:space-between;align-items:center;padding:20px 24px;z-index:3}
+.p-top .who{font-family:'Fraunces',serif;font-size:17px}
+.p-top .cnt{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft)}
+.p-stage{position:relative;flex:1;display:grid;place-items:center;z-index:3;padding:10px 20px}
+.orb-wrap{position:relative;width:min(74vw,330px);aspect-ratio:1;display:grid;place-items:center}
+#breath{position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 2px 20px rgba(255,255,255,.9),0 30px 70px -30px rgba(46,36,48,.55);
+  border:1px solid rgba(255,255,255,.7);animation:breathe 11s ease-in-out infinite;transition:background 1s}
+@keyframes breathe{0%,100%{transform:scale(.94)}50%{transform:scale(1.04)}}
+#breath.paused{animation-play-state:paused}
+#breath.bloom{animation:bloom 1s ease-in-out infinite}
+@keyframes bloom{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+#ring{position:absolute;inset:-14px;transform:rotate(-90deg)}
+#ring circle{fill:none;stroke-linecap:round}
+.time{position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);z-index:4;
+  font-family:'IBM Plex Mono',monospace;font-size:clamp(26px,6.6vw,34px);font-weight:400;color:var(--ink);
+  padding:5px 20px;border-radius:999px;background:var(--glass-strong);border:1px solid var(--glass-line);
+  box-shadow:var(--shade-2);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
+.p-names{text-align:center;margin-top:38px;position:relative;z-index:3}
+.p-names .ua{font-family:'Fraunces',serif;font-size:clamp(28px,6vw,42px);font-weight:300}
+.p-names .sa{font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);margin-top:8px}
+.p-names .cue{font-size:15px;color:var(--ink-soft);font-style:italic;margin-top:12px;max-width:34ch;margin-left:auto;margin-right:auto}
+.p-names .side{display:inline-block;margin-top:10px;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+  padding:4px 12px;border-radius:999px;background:rgba(255,255,255,.6);border:1px solid var(--glass-line)}
+.p-next{text-align:center;font-size:13.5px;color:var(--ink-faint);padding:6px 20px;position:relative;z-index:3;transition:.4s}
+.p-next.soon{color:var(--ink);transform:translateY(-3px)}
+.p-controls{position:relative;z-index:3;display:flex;justify-content:center;align-items:center;gap:12px;padding:14px 20px 8px}
+.p-btn{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:18px;
+  background:var(--glass-strong);border:1px solid var(--glass-line);box-shadow:var(--shade-2);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);transition:.25s}
+.p-btn:hover{transform:translateY(-3px);box-shadow:var(--shade-3)}
+.p-btn.big{width:74px;height:74px;font-size:24px;background:linear-gradient(135deg,var(--ink),#4A3B4E);color:var(--porcelain);border-color:transparent}
+.p-progress{position:relative;z-index:3;display:flex;gap:3px;padding:14px 22px 26px}
+.p-progress i{height:4px;border-radius:2px;background:rgba(46,36,48,.13);flex:1;overflow:hidden}
+.p-progress i b{display:block;height:100%;width:0;background:var(--ink);border-radius:2px}
+.done-screen{position:absolute;inset:0;z-index:5;display:none;place-items:center;text-align:center;
+  background:rgba(246,241,236,.9);backdrop-filter:blur(14px)}
+.done-screen.on{display:grid;animation:fade .6s}
+.done-screen h2{font-size:clamp(40px,9vw,64px);font-weight:300}
+.done-screen .tally{font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--ink-soft);margin:16px 0 26px}
+.check{width:76px;height:76px;border-radius:50%;margin:0 auto 22px;display:grid;place-items:center;
+  background:var(--g-flow);box-shadow:0 20px 40px -18px rgba(46,36,48,.5);font-size:32px;color:#fff}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);z-index:100;opacity:0;
+  padding:12px 22px;border-radius:999px;background:var(--ink);color:var(--porcelain);font-size:14px;
+  box-shadow:var(--shade-3);transition:.35s;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%)}
+
+/* рік у клітинках */
+.year-head{display:flex;justify-content:space-between;align-items:center;gap:14px}
+.year-scroll{overflow-x:auto;padding:6px 2px 10px;-webkit-overflow-scrolling:touch}
+#yearGrid{display:inline-block;min-width:100%}
+.year-months{display:grid;grid-auto-flow:column;grid-template-columns:repeat(53,16px);margin-bottom:5px}
+.year-months .mon{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);grid-row:1}
+.year-cells{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,13px);grid-auto-columns:13px;gap:3px}
+.year-cells .cell{width:13px;height:13px;border-radius:4px;box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+.year-cells .cell.blank{background:none!important;box-shadow:none}
+.year-cells .cell.has{cursor:pointer;transition:transform .15s}
+.year-cells .cell.has:hover{transform:scale(1.35)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px}
+.legend .lg{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft)}
+.legend .lg i{width:13px;height:13px;border-radius:4px;display:block}
+.card.new-card.gen{border-color:rgba(201,191,234,.7);background:rgba(255,255,255,.42)}
+#player.is-gap #ringFill{stroke:rgba(46,36,48,.25)}
+#player.is-gap .p-names .sa{letter-spacing:.3em}
+
+@media (max-width:640px){
+  .wrap{padding:24px 16px 100px}
+  .sheet-panel{width:100%;top:auto;height:88vh;border-radius:var(--r-xl) var(--r-xl) 0 0;border-left:0}
+  .slab{padding:10px}
+  .slab .grip{width:18px}
+  .stat{min-width:80px;padding:10px 12px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important;transition:none !important}
+}
+
+/* ---------- плеєр: рівно один екран, без прокрутки ---------- */
+body.playing{overflow:hidden}
+#player{height:100vh;height:100dvh;overflow:hidden}
+.p-top{flex:0 0 auto;padding:calc(env(safe-area-inset-top,0px) + 10px) 18px 4px}
+.p-stage{flex:1 1 auto;min-height:0;padding:0 16px}
+.p-stage > div{display:flex;flex-direction:column;align-items:center;justify-content:center;max-height:100%;width:100%}
+.orb-wrap{width:min(66vw,34vh);max-width:320px}
+#ring{inset:-11px}
+.time{position:relative;left:auto;bottom:auto;transform:none;padding:0;
+  background:none;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;
+  font-size:clamp(30px,7vh,54px);font-weight:300;
+  text-shadow:0 1px 0 rgba(255,255,255,.65)}
+.p-names{margin-top:clamp(14px,3vh,30px)}
+.p-names .ua{font-size:clamp(21px,4.4vh,40px)}
+.p-names .sa{font-size:clamp(10px,1.5vh,12.5px);margin-top:clamp(4px,1vh,8px)}
+.p-names .cue{font-size:clamp(12px,1.9vh,15px);margin-top:clamp(6px,1.4vh,12px)}
+.p-names .side{margin-top:clamp(6px,1.2vh,10px)}
+.p-next{flex:0 0 auto;padding:clamp(4px,1vh,8px) 20px;font-size:clamp(11.5px,1.7vh,13.5px)}
+.p-controls{flex:0 0 auto;gap:clamp(8px,2vw,12px);padding:clamp(6px,1.4vh,14px) 20px clamp(2px,.6vh,8px)}
+.p-btn{width:clamp(42px,6.6vh,52px);height:clamp(42px,6.6vh,52px);font-size:clamp(15px,2.4vh,18px)}
+.p-btn.big{width:clamp(58px,9.4vh,74px);height:clamp(58px,9.4vh,74px);font-size:clamp(19px,3.2vh,24px)}
+.p-progress{flex:0 0 auto;padding:clamp(8px,1.6vh,14px) 20px calc(env(safe-area-inset-bottom,0px) + 14px)}
+.done-screen h2{font-size:clamp(34px,7vh,60px)}
+.done-screen .check{width:clamp(52px,9vh,76px);height:clamp(52px,9vh,76px);margin-bottom:clamp(12px,2.4vh,22px)}
+@media (max-height:600px){ .p-names .cue{display:none} }
+@media (max-height:460px){ .p-names .sa{display:none} .p-next{display:none} }
+
+/* ---------- решта застосунку на телефоні ---------- */
+@media (max-width:640px){
+  .wrap{padding:18px 14px 44px}
+  .brand h1{font-size:clamp(30px,9.5vw,44px)}
+  .brand .sub{font-size:11px;margin-top:5px}
+  .masthead{margin-bottom:18px;align-items:center}
+  .tabs{margin-bottom:20px}
+  .stat{min-width:0;padding:8px 11px}
+  .stat b{font-size:19px}
+  .stat span{font-size:9.5px;letter-spacing:.08em}
+  .grid{grid-template-columns:1fr;gap:14px}
+  .card{padding:18px}
+  .card h3{font-size:22px}
+}
+
+/* ---------- плеєр: чесний центр ---------- */
+#player{justify-content:center;padding:54px 0 44px}
+.p-top{position:absolute;top:0;left:0;right:0;display:grid;grid-template-columns:44px 1fr 44px;
+  gap:10px;align-items:center;padding:calc(env(safe-area-inset-top,0px) + 12px) 18px 8px}
+.p-top #pExit{justify-self:start}
+.p-top .who{justify-self:center;text-align:center}
+.p-top .cnt{justify-self:end;text-align:right}
+.p-stage{flex:0 1 auto;min-height:0}
+.p-next{min-height:1.7em}
+.p-stage > div,.p-next,.p-controls{width:100%;max-width:520px;margin-left:auto;margin-right:auto}
+.p-progress{position:absolute;left:0;right:0;bottom:0;
+  padding:0 20px calc(env(safe-area-inset-bottom,0px) + 14px)}
+@media (max-height:460px){ #player{padding:44px 0 34px} }
+</style>
+</head>
+<body>
+
+<div id="sky">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="blob b3"></div><div class="blob b4"></div>
+</div>
+<div id="grain"></div>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand">
+      <h1>Дихання</h1>
+      <div class="sub">конструктор послідовностей</div>
+    </div>
+    <div class="streak">
+      <button class="btn btn-ghost" id="installBtn" style="display:none;align-self:center">Встановити</button>
+      <div class="stat"><b id="statStreak" class="mono">0</b><span>днів поспіль</span></div>
+      <div class="stat"><b id="statTotal" class="mono">0</b><span>практик</span></div>
+      <div class="stat"><b id="statMin" class="mono">0</b><span>хвилин</span></div>
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-view="library">Практики</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="editor">Редактор</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="year">Рік</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="music">Звук</button>
+  </div>
+
+  <!-- LIBRARY -->
+  <section class="view on" id="view-library">
+    <div class="grid" id="libGrid"></div>
+  </section>
+
+  <!-- EDITOR -->
+  <section class="view" id="view-editor">
+    <div class="editor-top">
+      <div class="field" style="flex:1;min-width:260px">
+        <label for="seqTitle">Назва</label>
+        <input id="seqTitle" type="text" placeholder="Ранкова практика">
+      </div>
+      <div class="field">
+        <label for="seqMusic">Фонова музика</label>
+        <select id="seqMusic"></select>
+      </div>
+      <button class="btn btn-ghost" id="addPoseBtn">+ Додати асану</button>
+    </div>
+
+    <div class="ribbon-head">
+      <div class="total" id="seqTotal">0 хв</div>
+      <div class="hint">Висота смуги = тривалість. Тягни за ⠿, щоб змінити порядок.</div>
+    </div>
+
+    <div id="ribbon"></div>
+
+    <div class="editor-foot">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" id="saveSeq">Зберегти</button>
+        <button class="btn btn-ghost" id="playDraft">Почати практику</button>
+      </div>
+      <button class="btn btn-ghost" id="deleteSeq" style="color:#B4636F">Видалити послідовність</button>
+    </div>
+  </section>
+
+  <!-- YEAR -->
+  <section class="view" id="view-year">
+    <div class="year-head">
+      <h2 class="section" id="yearTitle">2026</h2>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-icon" id="yearPrev">⟨</button>
+        <button class="btn btn-ghost btn-icon" id="yearNext">⟩</button>
+      </div>
+    </div>
+    <p class="section-sub" id="yearSub"></p>
+    <div class="year-scroll"><div id="yearGrid"></div></div>
+    <div class="legend" id="yearLegend"></div>
+    <div id="yearDetail" class="note"></div>
+  </section>
+
+  <!-- MUSIC -->
+  <section class="view" id="view-music">
+    <h2 class="section">Звукове тло</h2>
+    <p class="section-sub">Вбудовані пейзажі генеруються прямо в браузері — файлів не треба, вони не закінчуються і не повторюються.</p>
+    <div class="music-grid" id="ambienceGrid"></div>
+
+    <h2 class="section">Твої треки</h2>
+    <p class="section-sub">Додай посилання на аудіофайл або відкрий файл із пристрою.</p>
+    <div class="music-grid" id="trackGrid"></div>
+    <div class="add-row">
+      <input type="text" id="trackUrl" placeholder="https://… посилання на mp3">
+      <button class="btn btn-ghost" id="addUrl">Додати посилання</button>
+      <button class="btn btn-ghost" id="pickFile">Відкрити файл</button>
+      <input type="file" id="fileInput" accept="audio/*" multiple hidden>
+    </div>
+    <p class="note">Посилання зберігаються назавжди. Файли з пристрою працюють до перезавантаження сторінки — браузер не дає зберегти сам файл, лише тимчасове посилання на нього.</p>
+
+    <h2 class="section" style="margin-top:34px">Пауза на перехід</h2>
+    <p class="section-sub">Окремий крок між асанами: показує наступну позу й дає час перелаштуватись.</p>
+    <div class="slider-row"><label for="gapSec">Тривалість</label>
+      <select id="gapSec" class="field" style="padding:8px 12px;flex:none">
+        <option value="0">без пауз</option><option value="3">3 секунди</option>
+        <option value="5">5 секунд</option><option value="8">8 секунд</option>
+        <option value="12">12 секунд</option>
+      </select></div>
+
+    <h2 class="section" style="margin-top:34px">Гучність і сигнали</h2>
+    <div class="slider-row"><label for="volAmb">Тло</label><input type="range" id="volAmb" min="0" max="100"></div>
+    <div class="slider-row"><label for="volCue">Сигнал зміни</label><input type="range" id="volCue" min="0" max="100"></div>
+    <div class="slider-row"><label for="cueLead">Попередження за</label>
+      <select id="cueLead" class="field" style="padding:8px 12px"><option value="0">без попередження</option><option value="3">3 секунди</option><option value="5">5 секунд</option><option value="8">8 секунд</option></select>
+    </div>
+    <div class="slider-row"><label for="vibeOn">Вібрація</label>
+      <select id="vibeOn" class="field" style="padding:8px 12px;flex:none"><option value="1">разом зі звуком</option><option value="0">вимкнена</option></select></div>
+    <button class="btn btn-ghost" id="testCue">Послухати сигнал</button>
+
+    <h2 class="section" style="margin-top:34px">Резервна копія</h2>
+    <p class="section-sub">Один файл із твоїми послідовностями, треками й журналом практик — щоб перенести на інший телефон.</p>
+    <div class="add-row">
+      <button class="btn btn-ghost" id="doExport">Зберегти у файл</button>
+      <button class="btn btn-ghost" id="doImport">Відновити з файлу</button>
+      <input type="file" id="importInput" accept="application/json" hidden>
+    </div>
+  </section>
+</div>
+
+<!-- POSE PICKER -->
+<div class="sheet" id="poseSheet">
+  <div class="sheet-panel">
+    <button class="close-x" id="closeSheet">✕</button>
+    <h2>Бібліотека асан</h2>
+    <input class="search" id="poseSearch" type="text" placeholder="Шукати за назвою…">
+    <div class="cats" id="catList"></div>
+    <div id="poseList"></div>
+  </div>
+</div>
+
+<!-- GENERATOR -->
+<div class="sheet" id="genSheet">
+  <div class="sheet-panel">
+    <button class="close-x" id="closeGen">✕</button>
+    <h2>Зібрати практику</h2>
+    <p class="section-sub">Обери час і напрям — послідовність складеться сама, а далі її можна правити як завгодно.</p>
+    <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px">Скільки часу</div>
+    <div class="cats" id="genTime"></div>
+    <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px">Напрям</div>
+    <div class="cats" id="genFocus"></div>
+    <button class="btn btn-primary" id="genBuild" style="margin-top:24px;width:100%">Зібрати</button>
+    <p class="note">Шавасана додається завжди — приблизно десята частина часу.</p>
+  </div>
+</div>
+
+<!-- PLAYER -->
+<div id="player">
+  <div id="pSky"><div></div><div></div><div></div></div>
+  <div class="p-top">
+    <button class="p-btn" id="pExit" style="width:40px;height:40px;font-size:15px">✕</button>
+    <div class="who" id="pTitle"></div>
+    <div class="cnt" id="pCount">1/1</div>
+  </div>
+  <div class="p-stage">
+    <div>
+      <div class="orb-wrap">
+        <svg id="ring" viewBox="0 0 200 200"><circle cx="100" cy="100" r="96" stroke="rgba(46,36,48,.10)" stroke-width="3"/>
+        <circle id="ringFill" cx="100" cy="100" r="96" stroke="rgba(46,36,48,.55)" stroke-width="3"/></svg>
+        <div id="breath"></div>
+        <div class="time mono" id="pTime">0:30</div>
+      </div>
+      <div class="p-names">
+        <div class="ua" id="pUa"></div>
+        <div class="sa" id="pSa"></div>
+        <div class="cue" id="pCue"></div>
+        <div id="pSideWrap"></div>
+      </div>
+    </div>
+  </div>
+  <div class="p-next" id="pNext"></div>
+  <div class="p-controls">
+    <button class="p-btn" id="pSub" title="Скоротити на 30 секунд"><span style="font-size:13px" class="mono">−30</span></button>
+    <button class="p-btn" id="pPrev">⟨</button>
+    <button class="p-btn big" id="pPlay">❚❚</button>
+    <button class="p-btn" id="pNextBtn">⟩</button>
+    <button class="p-btn" id="pAdd" title="Подовжити на 30 секунд"><span style="font-size:13px" class="mono">+30</span></button>
+  </div>
+  <div class="p-progress" id="pProgress"></div>
+  <div class="done-screen" id="doneScreen">
+    <div>
+      <div class="check">✓</div>
+      <h2>Намасте</h2>
+      <div class="tally mono" id="doneTally"></div>
+      <button class="btn btn-primary" id="doneClose">Готово</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 1. ДАНІ ============ */
+const CAT = {
+  standing:{ua:'Стоячі',   g:'var(--g-standing)', c:['#F6C9A8','#E8859B']},
+  balance: {ua:'Баланс',   g:'var(--g-balance)',  c:['#C9BFEA','#A9C7E8']},
+  fold:    {ua:'Нахили',   g:'var(--g-fold)',     c:['#A8CFC0','#A9C7E8']},
+  backbend:{ua:'Прогини',  g:'var(--g-backbend)', c:['#F6C9A8','#EFA0A0']},
+  twist:   {ua:'Скрутки',  g:'var(--g-twist)',    c:['#C9BFEA','#EFA0A0']},
+  seated:  {ua:'Сидячі',   g:'var(--g-seated)',   c:['#EADCC8','#C9BFEA']},
+  core:    {ua:'Центр',    g:'var(--g-core)',     c:['#F6C9A8','#E8B25A']},
+  rest:    {ua:'Спокій',   g:'var(--g-rest)',     c:['#A9C7E8','#C9BFEA']},
+  flow:    {ua:'Рух',      g:'var(--g-flow)',     c:['#A8CFC0','#F6C9A8']}
+};
+
+const POSES = [
+ {id:'tada',    sa:'Tadasana',              ua:'Поза гори',              cat:'standing', d:30, cue:'Stand tall, weight even, crown lifting.'},
+ {id:'urdhva',  sa:'Urdhva Hastasana',      ua:'Руки вгору',             cat:'standing', d:20, cue:'Sweep the arms up, lengthen the sides.'},
+ {id:'utta',    sa:'Uttanasana',            ua:'Нахил уперед стоячи',    cat:'fold',     d:40, cue:'Fold forward, let the head hang heavy.'},
+ {id:'ardhau',  sa:'Ardha Uttanasana',      ua:'Півнахил',               cat:'fold',     d:15, cue:'Lift halfway, flatten the back.'},
+ {id:'utka',    sa:'Utkatasana',            ua:'Поза стільця',           cat:'standing', d:30, cue:'Sit the hips back, knees over ankles.'},
+ {id:'anjan',   sa:'Anjaneyasana',          ua:'Низький випад',          cat:'standing', d:40, cue:'Sink the hips, open the front of the thigh.', bi:true},
+ {id:'lunge',   sa:'High Lunge',            ua:'Високий випад',          cat:'standing', d:30, cue:'Back leg strong, chest lifted.', bi:true},
+ {id:'vira1',   sa:'Virabhadrasana I',      ua:'Воїн I',                 cat:'standing', d:40, cue:'Hips forward, arms reaching up.', bi:true},
+ {id:'vira2',   sa:'Virabhadrasana II',     ua:'Воїн II',                cat:'standing', d:40, cue:'Gaze over the front hand, hips open.', bi:true},
+ {id:'vira3',   sa:'Virabhadrasana III',    ua:'Воїн III',               cat:'balance',  d:25, cue:'One line from heel to fingertips.', bi:true},
+ {id:'trik',    sa:'Trikonasana',           ua:'Поза трикутника',        cat:'standing', d:40, cue:'Reach long before you lower down.', bi:true},
+ {id:'parsva',  sa:'Parsvakonasana',        ua:'Бічний кут',             cat:'standing', d:40, cue:'Forearm to thigh, top arm over the ear.', bi:true},
+ {id:'prasar',  sa:'Prasarita Padottanasana',ua:'Широкий нахил',         cat:'fold',     d:45, cue:'Wide stance, crown toward the floor.'},
+ {id:'vriksh',  sa:'Vrikshasana',           ua:'Поза дерева',            cat:'balance',  d:30, cue:'Root down through the standing foot.', bi:true},
+ {id:'garuda',  sa:'Garudasana',            ua:'Поза орла',              cat:'balance',  d:25, cue:'Wrap and squeeze, sit a little lower.', bi:true},
+ {id:'natar',   sa:'Natarajasana',          ua:'Поза танцівника',        cat:'balance',  d:25, cue:'Press the foot back, lift the chest.', bi:true},
+
+ {id:'adho',    sa:'Adho Mukha Svanasana',  ua:'Собака мордою вниз',     cat:'flow',     d:45, cue:'Hips high, heels heavy, ribs soft.'},
+ {id:'plank',   sa:'Phalakasana',           ua:'Планка',                 cat:'core',     d:30, cue:'Heels back, low belly drawn in.'},
+ {id:'chatur',  sa:'Chaturanga Dandasana',  ua:'Чатуранга',              cat:'core',     d:10, cue:'Elbows in, lower halfway with control.'},
+ {id:'bhuj',    sa:'Bhujangasana',          ua:'Поза кобри',             cat:'backbend', d:30, cue:'Peel the chest up, shoulders down the back.'},
+ {id:'urdhvam', sa:'Urdhva Mukha Svanasana',ua:'Собака мордою вгору',    cat:'backbend', d:20, cue:'Thighs off the floor, chest forward.'},
+ {id:'salab',   sa:'Salabhasana',           ua:'Поза сарани',            cat:'backbend', d:25, cue:'Lift chest and legs, arms reaching back.'},
+ {id:'dhanu',   sa:'Dhanurasana',           ua:'Поза лука',              cat:'backbend', d:25, cue:'Kick into the hands, open the chest.'},
+ {id:'ustra',   sa:'Ustrasana',             ua:'Поза верблюда',          cat:'backbend', d:25, cue:'Hips over knees, heart lifting first.'},
+ {id:'setu',    sa:'Setu Bandhasana',       ua:'Поза мосту',             cat:'backbend', d:40, cue:'Press the feet, lift the hips slowly.'},
+
+ {id:'balas',   sa:'Balasana',              ua:'Поза дитини',            cat:'rest',     d:60, cue:'Knees wide, forehead down, breathe into the back.'},
+ {id:'catcow',  sa:'Marjaryasana–Bitilasana',ua:'Кішка-корова',          cat:'flow',     d:60, cue:'Move with the breath: inhale open, exhale round.'},
+ {id:'thread',  sa:'Parsva Balasana',       ua:'Голка у вушко',          cat:'twist',    d:35, cue:'Thread the arm through, shoulder to the mat.', bi:true},
+ {id:'vira_s',  sa:'Virasana',              ua:'Поза героя',             cat:'seated',   d:45, cue:'Sit between the heels, spine tall.'},
+ {id:'sukha',   sa:'Sukhasana',             ua:'Зручна поза',            cat:'seated',   d:60, cue:'Easy cross legs, soften the jaw.'},
+ {id:'danda',   sa:'Dandasana',             ua:'Поза палиці',            cat:'seated',   d:30, cue:'Legs active, sit bones grounded.'},
+ {id:'paschi',  sa:'Paschimottanasana',     ua:'Нахил сидячи',           cat:'fold',     d:60, cue:'Lead with the chest, not the head.'},
+ {id:'janu',    sa:'Janu Sirsasana',        ua:'Голова до коліна',       cat:'fold',     d:45, cue:'Turn the chest to the straight leg first.', bi:true},
+ {id:'baddha',  sa:'Baddha Konasana',       ua:'Поза метелика',          cat:'seated',   d:60, cue:'Soles together, knees heavy, back long.'},
+ {id:'upav',    sa:'Upavistha Konasana',    ua:'Широкий кут сидячи',     cat:'fold',     d:50, cue:'Walk the hands forward, keep the toes up.'},
+ {id:'gomu',    sa:'Gomukhasana',           ua:'Поза корови',            cat:'seated',   d:40, cue:'Stack the knees, breathe into the hip.', bi:true},
+ {id:'navas',   sa:'Navasana',              ua:'Поза човна',             cat:'core',     d:25, cue:'Chest open, low belly holding you up.'},
+ {id:'ardham',  sa:'Ardha Matsyendrasana',  ua:'Скрутка сидячи',         cat:'twist',    d:40, cue:'Lengthen up, then turn from the base.', bi:true},
+
+ {id:'apana',   sa:'Apanasana',             ua:'Коліна до грудей',       cat:'rest',     d:40, cue:'Hug the knees in, rock gently side to side.'},
+ {id:'supta_t', sa:'Supta Matsyendrasana',  ua:'Скрутка лежачи',         cat:'twist',    d:60, cue:'Knees drop one way, gaze the other.', bi:true},
+ {id:'happy',   sa:'Ananda Balasana',       ua:'Щаслива дитина',         cat:'rest',     d:45, cue:'Hold the outer feet, knees toward the floor.'},
+ {id:'supta_b', sa:'Supta Baddha Konasana', ua:'Метелик лежачи',         cat:'rest',     d:90, cue:'Let the hips open with no effort.'},
+ {id:'vipar',   sa:'Viparita Karani',       ua:'Ноги на стіні',          cat:'rest',     d:120,cue:'Legs up, arms wide, let the breath slow.'},
+ {id:'sava',    sa:'Savasana',              ua:'Шавасана',               cat:'rest',     d:180,cue:'Nothing to do now. Let the floor hold you.'}
+];
+const P = Object.fromEntries(POSES.map(p=>[p.id,p]));
+
+
+const AMBIENCES = [
+  {id:'none',  name:'Тиша',        d:'без тла',                  icon:'○'},
+  {id:'pad',   name:'Тепле полотно',d:'м’які акорди, дуже повільні', icon:'≈'},
+  {id:'ocean', name:'Прибій',       d:'хвилі, шум, дихання',      icon:'∿'},
+  {id:'bowls', name:'Чаші',         d:'дрон і рідкі удари',       icon:'◍'},
+  {id:'rain',  name:'Дощ',          d:'рівний, без грому',        icon:'⋮'},
+  {id:'night', name:'Ніч',          d:'низький гул, майже тиша',  icon:'▁'}
+];
+
+const PRESETS = [
+ {id:'pre-morning', title:'Ранкове пробудження', music:'pad', preset:true,
+  items:[['catcow',60],['balas',40],['adho',45],['utta',40],['tada',20],['urdhva',20],['anjan',35,true],['vira1',35,true],['trik',35,true],['vriksh',30,true],['utta',40],['sava',90]]},
+ {id:'pre-sun', title:'Привітання сонцю', music:'none', preset:true,
+  items:[['tada',20],['urdhva',15],['utta',25],['ardhau',10],['plank',20],['chatur',8],['urdhvam',15],['adho',40],['lunge',25,true],['utta',25],['tada',20]]},
+ {id:'pre-spine', title:'Спина після роботи', music:'ocean', preset:true,
+  items:[['sukha',60],['catcow',75],['thread',40,true],['balas',50],['bhuj',30],['salab',25],['setu',45],['supta_t',60,true],['apana',40],['sava',120]]},
+ {id:'pre-evening', title:'Вечірнє сповільнення', music:'night', preset:true,
+  items:[['balas',75],['catcow',60],['janu',45,true],['paschi',60],['baddha',75],['supta_b',90],['vipar',150],['sava',180]]},
+ {id:'pre-quick', title:'П’ять хвилин', music:'bowls', preset:true,
+  items:[['sukha',40],['catcow',50],['adho',40],['utta',35],['anjan',30,true],['balas',45],['sava',60]]}
+];
+
+/* ============ 2. СХОВИЩЕ ============ */
+const mem = {};
+const store = {
+  async get(k){
+    if(window.storage){ try{ const r = await window.storage.get(k); return r ? JSON.parse(r.value) : null; }catch(e){ return null; } }
+    try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : (mem[k] ?? null); }catch(e){ return mem[k] ?? null; }
+  },
+  async set(k,v){
+    mem[k]=v;
+    if(window.storage){ try{ await window.storage.set(k, JSON.stringify(v)); }catch(e){} return; }
+    try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){}
+  }
+};
+
+let state = {
+  sequences: [],
+  tracks: [],
+  log: [],
+  settings: {volAmb:.45, volCue:.5, cueLead:3, vibe:true, gap:5}
+};
+let draft = null;        // послідовність у редакторі
+let sheetCat = 'all';
+
+/* ============ 3. АУДІО ============ */
+const Audio_ = (()=>{
+  let ctx=null, ambGain=null, cueGain=null, nodes=[], current='none', el=null, timerId=null, bowlStrike=null;
+  function ensure(){
+    if(ctx) return ctx;
+    ctx = new (window.AudioContext||window.webkitAudioContext)();
+    ambGain = ctx.createGain(); ambGain.gain.value = state.settings.volAmb; ambGain.connect(ctx.destination);
+    cueGain = ctx.createGain(); cueGain.gain.value = state.settings.volCue; cueGain.connect(ctx.destination);
+    return ctx;
+  }
+  function noiseBuffer(sec=4){
+    const b = ctx.createBuffer(1, ctx.sampleRate*sec, ctx.sampleRate);
+    const d = b.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+    return b;
+  }
+  function lfo(target, freq, min, max){
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.value = freq; g.gain.value = (max-min)/2;
+    target.value = (max+min)/2;
+    o.connect(g); g.connect(target); o.start();
+    nodes.push(o,g);
+  }
+  function stopAll(){
+    nodes.forEach(n=>{ try{ n.stop&&n.stop(); n.disconnect&&n.disconnect(); }catch(e){} });
+    nodes=[];
+    if(timerId){ clearInterval(timerId); timerId=null; }
+    bowlStrike=null;
+    if(el){ el.pause(); el = null; }
+  }
+  function build(id){
+    ensure(); stopAll(); current = id;
+    if(id==='none') return;
+    if(id.startsWith('track:')){
+      const t = state.tracks.find(x=>x.id===id.slice(6));
+      if(!t) return;
+      el = new Audio(t.src); el.loop = true; el.volume = state.settings.volAmb;
+      el.play().catch(()=>toast('Браузер не пускає цей трек — спробуй інше посилання або файл'));
+      return;
+    }
+    if(id==='pad'){
+      const freqs=[130.81,196,329.63];
+      freqs.forEach((f,i)=>{
+        const o=ctx.createOscillator(), g=ctx.createGain(), f2=ctx.createBiquadFilter();
+        o.type = i===2?'sine':'triangle'; o.frequency.value = f*(1+(i-1)*0.0015);
+        f2.type='lowpass'; f2.frequency.value=700;
+        g.gain.value=0; g.gain.linearRampToValueAtTime(.09/(i+1), ctx.currentTime+6);
+        o.connect(f2); f2.connect(g); g.connect(ambGain); o.start();
+        lfo(g.gain, .03+i*.01, .02, .10/(i+1));
+        nodes.push(o,g,f2);
+      });
+    }
+    if(id==='ocean'){
+      const s=ctx.createBufferSource(); s.buffer=noiseBuffer(6); s.loop=true;
+      const f=ctx.createBiquadFilter(); f.type='lowpass'; f.Q.value=1.2;
+      const g=ctx.createGain(); g.gain.value=.0;
+      s.connect(f); f.connect(g); g.connect(ambGain); s.start();
+      lfo(f.frequency,.055,180,900); lfo(g.gain,.055,.03,.34);
+      nodes.push(s,f,g);
+    }
+    if(id==='rain'){
+      const s=ctx.createBufferSource(); s.buffer=noiseBuffer(6); s.loop=true;
+      const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=900;
+      const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=6000;
+      const g=ctx.createGain(); g.gain.value=.16;
+      s.connect(hp); hp.connect(lp); lp.connect(g); g.connect(ambGain); s.start();
+      lfo(g.gain,.7,.12,.2);
+      nodes.push(s,hp,lp,g);
+    }
+    if(id==='night'){
+      [55,82.4].forEach((f,i)=>{
+        const o=ctx.createOscillator(), g=ctx.createGain(), lp=ctx.createBiquadFilter();
+        o.type='sine'; o.frequency.value=f; lp.type='lowpass'; lp.frequency.value=200;
+        g.gain.value=0; g.gain.linearRampToValueAtTime(.16-i*.06, ctx.currentTime+8);
+        o.connect(lp); lp.connect(g); g.connect(ambGain); o.start();
+        lfo(g.gain,.02+i*.01,.04,.16-i*.06);
+        nodes.push(o,g,lp);
+      });
+    }
+    if(id==='bowls'){
+      const o=ctx.createOscillator(), g=ctx.createGain(), lp=ctx.createBiquadFilter();
+      o.type='sine'; o.frequency.value=98; lp.type='lowpass'; lp.frequency.value=300;
+      g.gain.value=0; g.gain.linearRampToValueAtTime(.1, ctx.currentTime+6);
+      o.connect(lp); lp.connect(g); g.connect(ambGain); o.start();
+      nodes.push(o,g,lp);
+      const strike=()=>{
+        const t=ctx.currentTime;
+        [261.6,392,523.25].forEach((f,i)=>{
+          const oo=ctx.createOscillator(), gg=ctx.createGain();
+          oo.type='sine'; oo.frequency.value=f;
+          gg.gain.setValueAtTime(0,t); gg.gain.linearRampToValueAtTime(.10/(i+1.4),t+.04);
+          gg.gain.exponentialRampToValueAtTime(.0001,t+7);
+          oo.connect(gg); gg.connect(ambGain); oo.start(t); oo.stop(t+7.2);
+        });
+      };
+      bowlStrike = strike;
+      setTimeout(strike,2000);
+      timerId = setInterval(strike, 19000);
+    }
+  }
+  return {
+    play(id){ build(id); if(ctx&&ctx.state==='suspended') ctx.resume(); },
+    stop(){ stopAll(); current='none'; },
+    current(){ return current; },
+    setAmbVol(v){ if(ambGain) ambGain.gain.value=v; if(el) el.volume=v; },
+    setCueVol(v){ if(cueGain) cueGain.gain.value=v; },
+    resume(){ if(ctx&&ctx.state==='suspended') ctx.resume(); },
+    pause(){
+      if(timerId){ clearInterval(timerId); timerId=null; }
+      if(el) el.pause();
+      if(ctx && ctx.state==='running') ctx.suspend();
+    },
+    unpause(){
+      if(ctx && ctx.state==='suspended') ctx.resume();
+      if(el) el.play().catch(()=>{});
+      if(current==='bowls' && bowlStrike && !timerId) timerId = setInterval(bowlStrike, 19000);
+    },
+    tick(){ // тихий короткий сигнал перед зміною
+      ensure(); const t=ctx.currentTime;
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='sine'; o.frequency.value=740;
+      g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.22,t+.02);
+      g.gain.exponentialRampToValueAtTime(.0001,t+.5);
+      o.connect(g); g.connect(cueGain); o.start(t); o.stop(t+.55);
+    },
+    bell(){ // м’який дзвін на переході
+      ensure(); const t=ctx.currentTime;
+      [528,792,1056].forEach((f,i)=>{
+        const o=ctx.createOscillator(), g=ctx.createGain();
+        o.type='sine'; o.frequency.value=f;
+        g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.26/(i+1.3),t+.03);
+        g.gain.exponentialRampToValueAtTime(.0001,t+3.4);
+        o.connect(g); g.connect(cueGain); o.start(t); o.stop(t+3.5);
+      });
+    }
+  };
+})();
+
+/* ============ 4. ДОПОМІЖНЕ ============ */
+const $ = s=>document.querySelector(s);
+function buzz(p){ if(state.settings.vibe && navigator.vibrate) try{ navigator.vibrate(p); }catch(e){} }
+const $$ = s=>[...document.querySelectorAll(s)];
+const uid = ()=>Math.random().toString(36).slice(2,9);
+const isoLocal = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function fmt(sec){ const m=Math.floor(sec/60), s=sec%60; return m+':'+String(s).padStart(2,'0'); }
+function human(sec){ const m=Math.round(sec/60); return m<1 ? sec+' с' : m+' хв'; }
+let toastT;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2600); }
+function seqSeconds(seq){ return seq.items.reduce((a,i)=>a + i.sec*((i.both&&P[i.poseId].bi)?2:1), 0); }
+function musicName(id){
+  if(!id||id==='none') return 'Тиша';
+  if(id.startsWith('track:')){ const t=state.tracks.find(x=>x.id===id.slice(6)); return t?t.name:'Трек'; }
+  const a=AMBIENCES.find(a=>a.id===id); return a?a.name:'Тиша';
+}
+
+/* ============ 5. БІБЛІОТЕКА ============ */
+function renderLibrary(){
+  const g=$('#libGrid'); g.innerHTML='';
+  state.sequences.forEach(seq=>{
+    const cats=[...new Set(seq.items.map(i=>P[i.poseId].cat))].slice(0,4);
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`
+      <div class="aura" style="background:${CAT[P[seq.items[0].poseId].cat].g}"></div>
+      <h3>${seq.title}</h3>
+      <div class="meta mono">${human(seqSeconds(seq))} · ${seq.items.length} асан · ${musicName(seq.music)}</div>
+      <div class="chips">${cats.map(c=>`<span class="chip">${CAT[c].ua}</span>`).join('')}</div>
+      <div class="card-actions">
+        <button class="btn btn-primary" data-play="${seq.id}">Почати</button>
+        <button class="btn btn-ghost btn-icon" data-edit="${seq.id}" title="Редагувати">✎</button>
+        <button class="btn btn-ghost btn-icon" data-copy="${seq.id}" title="Копіювати">⧉</button>
+      </div>`;
+    g.appendChild(card);
+  });
+  const gen=document.createElement('button'); gen.className='card new-card gen';
+  gen.innerHTML='<div><div class="plus">✧</div><div class="meta">Зібрати за часом і напрямом</div></div>';
+  gen.onclick=()=>{ renderGen(); $('#genSheet').classList.add('on'); };
+  g.appendChild(gen);
+
+  const add=document.createElement('button'); add.className='card new-card';
+  add.innerHTML='<div><div class="plus">+</div><div class="meta">Нова послідовність</div></div>';
+  add.onclick=()=>{ openEditor(null); };
+  g.appendChild(add);
+
+  g.onclick=e=>{
+    const p=e.target.closest('[data-play]'), ed=e.target.closest('[data-edit]'), cp=e.target.closest('[data-copy]');
+    if(p) Player.start(state.sequences.find(s=>s.id===p.dataset.play));
+    if(ed) openEditor(state.sequences.find(s=>s.id===ed.dataset.edit));
+    if(cp){
+      const src=state.sequences.find(s=>s.id===cp.dataset.copy);
+      const clone=JSON.parse(JSON.stringify(src));
+      clone.id=uid(); clone.preset=false; clone.title=src.title+' — моя версія';
+      state.sequences.push(clone); save(); renderLibrary(); toast('Копію створено');
+    }
+  };
+  renderStats();
+}
+
+function renderStats(){
+  const days=[...new Set(state.log.map(l=>l.date))].sort();
+  let streak=0; const d=new Date();
+  for(;;){
+    const iso=isoLocal(d);
+    if(days.includes(iso)){ streak++; d.setDate(d.getDate()-1); }
+    else if(streak===0 && iso===isoLocal(new Date())){ d.setDate(d.getDate()-1); }
+    else break;
+  }
+  $('#statStreak').textContent=streak;
+  $('#statTotal').textContent=state.log.length;
+  $('#statMin').textContent=Math.round(state.log.reduce((a,l)=>a+l.sec,0)/60);
+}
+
+/* ============ 6. РЕДАКТОР ============ */
+function openEditor(seq){
+  if(seq && seq.preset){
+    draft = JSON.parse(JSON.stringify(seq));
+    draft.id = uid(); draft.preset = false; draft.title = seq.title + ' — моя версія';
+    toast('Готові практики не змінюються — відкрито копію');
+  } else {
+    draft = seq ? JSON.parse(JSON.stringify(seq)) : {id:uid(), title:'', music:'pad', items:[], preset:false};
+  }
+  $('#seqTitle').value = draft.title;
+  buildMusicSelect();
+  $('#seqMusic').value = draft.music || 'none';
+  $('#deleteSeq').style.display = state.sequences.some(s=>s.id===draft.id) ? '' : 'none';
+  renderRibbon();
+  switchView('editor');
+}
+
+function buildMusicSelect(){
+  const sel=$('#seqMusic'); sel.innerHTML='';
+  AMBIENCES.forEach(a=>sel.appendChild(new Option(a.name,a.id)));
+  state.tracks.forEach(t=>sel.appendChild(new Option(t.name,'track:'+t.id)));
+}
+
+function renderRibbon(){
+  const r=$('#ribbon'); r.innerHTML='';
+  if(!draft.items.length){
+    r.innerHTML='<div class="empty">Поки порожньо. Натисни «+ Додати асану», щоб зібрати послідовність.</div>';
+  }
+  draft.items.forEach((it,idx)=>{
+    const p=P[it.poseId];
+    const h = Math.min(96, 44 + it.sec*0.32);
+    const el=document.createElement('div');
+    el.className='slab'; el.dataset.idx=idx; el.style.minHeight=h+'px';
+    el.innerHTML=`
+      <div class="bar" style="background:${CAT[p.cat].g}"></div>
+      <div class="grip" title="Перетягни">⠿</div>
+      <div class="orb" style="background:${CAT[p.cat].g}"></div>
+      <div class="names">
+        <div class="nm">${p.ua}</div>
+        <div class="sa">${p.sa} · ${CAT[p.cat].ua}</div>
+      </div>
+      ${p.bi?`<button class="side-toggle ${it.both?'on':''}" data-side="${idx}">2 сторони</button>`:''}
+      <div class="dur">
+        <button data-minus="${idx}">−</button>
+        <input class="mono" type="number" min="5" max="900" step="5" value="${it.sec}" data-sec="${idx}">
+        <button data-plus="${idx}">+</button>
+      </div>
+      <button class="btn btn-ghost btn-icon" data-del="${idx}" title="Прибрати">✕</button>`;
+    r.appendChild(el);
+  });
+  $('#seqTotal').textContent = human(seqSeconds(draft)) + ' · ' + draft.items.length + ' асан';
+  attachDrag();
+}
+
+$('#ribbon').addEventListener('click',e=>{
+  const t=e.target;
+  const idx = n => parseInt(n,10);
+  if(t.dataset.del!==undefined){ draft.items.splice(idx(t.dataset.del),1); renderRibbon(); }
+  else if(t.dataset.plus!==undefined){ const i=idx(t.dataset.plus); draft.items[i].sec=Math.min(900,draft.items[i].sec+5); renderRibbon(); }
+  else if(t.dataset.minus!==undefined){ const i=idx(t.dataset.minus); draft.items[i].sec=Math.max(5,draft.items[i].sec-5); renderRibbon(); }
+  else if(t.dataset.side!==undefined){ const i=idx(t.dataset.side); draft.items[i].both=!draft.items[i].both; renderRibbon(); }
+});
+$('#ribbon').addEventListener('change',e=>{
+  if(e.target.dataset.sec!==undefined){
+    const i=parseInt(e.target.dataset.sec,10);
+    draft.items[i].sec = Math.max(5, Math.min(900, parseInt(e.target.value,10)||30));
+    renderRibbon();
+  }
+});
+
+/* перетягування — на pointer events, працює і на телефоні */
+function attachDrag(){
+  let dragEl=null;
+  $$('#ribbon .grip').forEach(grip=>{
+    grip.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      dragEl=grip.closest('.slab'); dragEl.classList.add('dragging');
+      grip.setPointerCapture(e.pointerId);
+      const move=ev=>{
+        const list=$('#ribbon');
+        const after=[...list.querySelectorAll('.slab:not(.dragging)')].find(s=>{
+          const b=s.getBoundingClientRect();
+          return ev.clientY < b.top + b.height/2;
+        });
+        if(after) list.insertBefore(dragEl,after); else list.appendChild(dragEl);
+      };
+      const up=()=>{
+        grip.removeEventListener('pointermove',move);
+        grip.removeEventListener('pointerup',up);
+        dragEl.classList.remove('dragging');
+        const order=[...$('#ribbon').querySelectorAll('.slab')].map(s=>parseInt(s.dataset.idx,10));
+        draft.items = order.map(i=>draft.items[i]);
+        dragEl=null; renderRibbon();
+      };
+      grip.addEventListener('pointermove',move);
+      grip.addEventListener('pointerup',up);
+    });
+  });
+}
+
+$('#seqTitle').addEventListener('input',e=>draft.title=e.target.value);
+$('#seqMusic').addEventListener('change',e=>draft.music=e.target.value);
+$('#addPoseBtn').onclick=()=>{ $('#poseSheet').classList.add('on'); renderPoseList(); $('#poseSearch').focus(); };
+$('#closeSheet').onclick=()=>$('#poseSheet').classList.remove('on');
+$('#poseSheet').addEventListener('click',e=>{ if(e.target.id==='poseSheet') e.currentTarget.classList.remove('on'); });
+
+$('#saveSeq').onclick=()=>{
+  if(!draft.items.length) return toast('Додай хоча б одну асану');
+  draft.title = draft.title.trim() || 'Без назви';
+  const i = state.sequences.findIndex(s=>s.id===draft.id);
+  if(i>=0) state.sequences[i]=JSON.parse(JSON.stringify(draft)); else state.sequences.push(JSON.parse(JSON.stringify(draft)));
+  save(); renderLibrary(); switchView('library'); toast('Збережено');
+};
+$('#playDraft').onclick=()=>{ if(!draft.items.length) return toast('Спочатку додай асани'); Player.start(draft); };
+$('#deleteSeq').onclick=()=>{
+  state.sequences = state.sequences.filter(s=>s.id!==draft.id);
+  save(); renderLibrary(); switchView('library'); toast('Видалено');
+};
+
+/* ---- бібліотека асан ---- */
+function renderCats(){
+  const c=$('#catList'); c.innerHTML='';
+  const all=document.createElement('button'); all.className='cat'; all.textContent='Усі';
+  all.setAttribute('aria-pressed', sheetCat==='all'); all.onclick=()=>{sheetCat='all';renderCats();renderPoseList();};
+  c.appendChild(all);
+  Object.entries(CAT).forEach(([k,v])=>{
+    const b=document.createElement('button'); b.className='cat'; b.textContent=v.ua;
+    b.setAttribute('aria-pressed', sheetCat===k);
+    b.onclick=()=>{sheetCat=k;renderCats();renderPoseList();};
+    c.appendChild(b);
+  });
+}
+function renderPoseList(){
+  const q=$('#poseSearch').value.trim().toLowerCase();
+  const list=$('#poseList'); list.innerHTML='';
+  POSES.filter(p=>(sheetCat==='all'||p.cat===sheetCat) &&
+      (!q || p.ua.toLowerCase().includes(q) || p.sa.toLowerCase().includes(q)))
+    .forEach(p=>{
+      const b=document.createElement('button'); b.className='pose-row';
+      b.innerHTML=`<div class="orb" style="background:${CAT[p.cat].g}"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:Fraunces,serif;font-size:16px">${p.ua}</div>
+          <div class="cue">${p.sa} · ${p.cue}</div>
+        </div>
+        <div class="mono" style="font-size:13px;color:var(--ink-faint)">${p.d}с</div>`;
+      b.onclick=()=>{
+        draft.items.push({poseId:p.id, sec:p.d, both:!!p.bi});
+        renderRibbon(); toast(p.ua+' додано');
+      };
+      list.appendChild(b);
+    });
+  if(!list.children.length) list.innerHTML='<div class="empty">Нічого не знайшлось. Спробуй іншу назву.</div>';
+}
+$('#poseSearch').addEventListener('input',renderPoseList);
+
+/* ============ 6b. ГЕНЕРАТОР ============ */
+const FOCUS = {
+  full:    {name:'Все тіло',  music:'pad',
+            warm:['catcow','balas','adho','utta'],
+            main:['tada','urdhva','utka','anjan','vira1','vira2','trik','parsva','vriksh','plank','bhuj','setu'],
+            cool:['janu','paschi','supta_t','apana']},
+  back:    {name:'Спина',     music:'ocean',
+            warm:['catcow','balas','thread'],
+            main:['bhuj','salab','setu','ustra','ardham','adho','anjan'],
+            cool:['supta_t','apana','janu','paschi']},
+  morning: {name:'Ранок',     music:'pad',
+            warm:['catcow','balas','adho'],
+            main:['tada','urdhva','utta','lunge','vira1','vira2','trik','vriksh','utka'],
+            cool:['janu','paschi','setu']},
+  evening: {name:'Вечір',     music:'night',
+            warm:['balas','catcow','sukha'],
+            main:['janu','paschi','baddha','upav','gomu','thread','supta_b'],
+            cool:['supta_t','vipar','apana']},
+  strength:{name:'Сила',      music:'none',
+            warm:['catcow','adho'],
+            main:['plank','chatur','utka','vira2','vira3','navas','salab','dhanu','lunge'],
+            cool:['balas','paschi','supta_t']},
+  stretch: {name:'Розтяжка',  music:'bowls',
+            warm:['catcow','balas','adho'],
+            main:['anjan','prasar','parsva','janu','upav','baddha','gomu','paschi'],
+            cool:['supta_t','happy','supta_b']},
+  balance: {name:'Баланс',    music:'pad',
+            warm:['catcow','tada','adho'],
+            main:['vriksh','vira3','garuda','natar','utka','trik'],
+            cool:['danda','paschi','supta_t']}
+};
+let genMin = 15, genFocus = 'full';
+
+function buildPhase(pool, budget){
+  const shuffled=[...pool].sort(()=>Math.random()-.5);
+  const chosen=[]; let used=0, k=0;
+  while(used < budget*0.9 && k < shuffled.length*2){
+    const p=P[shuffled[k % shuffled.length]];
+    const both=!!p.bi;
+    if(k>=shuffled.length && chosen.some(c=>c.poseId===p.id)){ k++; continue; }
+    chosen.push({poseId:p.id, sec:p.d, both});
+    used += p.d*(both?2:1); k++;
+  }
+  if(!chosen.length) return chosen;
+  const factor = budget/used;
+  chosen.forEach(c=>{ c.sec = Math.max(15, Math.min(150, Math.round(c.sec*factor/5)*5)); });
+  return chosen;
+}
+function generate(minutes, key){
+  const F=FOCUS[key], total=minutes*60;
+  const sava=Math.max(60, Math.min(180, Math.round(total*0.1/10)*10));
+  const body=total-sava;
+  const items=[...buildPhase(F.warm, body*0.25), ...buildPhase(F.main, body*0.5), ...buildPhase(F.cool, body*0.25)];
+  items.push({poseId:'sava', sec:sava, both:false});
+  return {id:uid(), title:F.name+' · '+minutes+' хв', music:F.music, items, preset:false};
+}
+function renderGen(){
+  const t=$('#genTime'); t.innerHTML='';
+  [5,10,15,20,30,45].forEach(m=>{
+    const b=document.createElement('button'); b.className='cat'; b.textContent=m+' хв';
+    b.setAttribute('aria-pressed', genMin===m);
+    b.onclick=()=>{ genMin=m; renderGen(); };
+    t.appendChild(b);
+  });
+  const f=$('#genFocus'); f.innerHTML='';
+  Object.entries(FOCUS).forEach(([k,v])=>{
+    const b=document.createElement('button'); b.className='cat'; b.textContent=v.name;
+    b.setAttribute('aria-pressed', genFocus===k);
+    b.onclick=()=>{ genFocus=k; renderGen(); };
+    f.appendChild(b);
+  });
+}
+$('#closeGen').onclick=()=>$('#genSheet').classList.remove('on');
+$('#genSheet').addEventListener('click',e=>{ if(e.target.id==='genSheet') e.currentTarget.classList.remove('on'); });
+$('#genBuild').onclick=()=>{
+  $('#genSheet').classList.remove('on');
+  draft = generate(genMin, genFocus);
+  $('#seqTitle').value=draft.title;
+  buildMusicSelect(); $('#seqMusic').value=draft.music;
+  $('#deleteSeq').style.display='none';
+  renderRibbon(); switchView('editor');
+  toast('Зібрано — правь як хочеш і збережи');
+};
+
+/* ============ 6c. РІК У КЛІТИНКАХ ============ */
+const TIERS=[
+  {max:0,   c:'rgba(46,36,48,.06)', label:'без практики'},
+  {max:10,  c:'#A8CFC0', label:'до 10 хв'},
+  {max:20,  c:'#C9BFEA', label:'10–20 хв'},
+  {max:35,  c:'#F6C9A8', label:'20–35 хв'},
+  {max:1e9, c:'#E8859B', label:'понад 35 хв'}
+];
+const tierOf = min => min<=0 ? 0 : TIERS.findIndex(t=>min<=t.max);
+let yearShown = new Date().getFullYear();
+
+function renderYear(){
+  const byDate={};
+  state.log.forEach(l=>{ byDate[l.date]=(byDate[l.date]||0)+l.sec; });
+  $('#yearTitle').textContent=yearShown;
+
+  const start=new Date(yearShown,0,1), end=new Date(yearShown,11,31);
+  const lead=(start.getDay()+6)%7;                     // тиждень із понеділка
+  const grid=$('#yearGrid'); grid.innerHTML='';
+  const months=document.createElement('div'); months.className='year-months';
+  const cells=document.createElement('div'); cells.className='year-cells';
+
+  let col=0, seen={};
+  for(let k=0;k<lead;k++){ const e=document.createElement('span'); e.className='cell blank'; cells.appendChild(e); }
+  let days=0, mins=0, active=0;
+  for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+    const iso=isoLocal(d);
+    const sec=byDate[iso]||0, m=Math.round(sec/60), t=tierOf(m);
+    const e=document.createElement('span');
+    e.className='cell'; e.style.background=TIERS[t].c;
+    e.dataset.iso=iso; e.dataset.min=m;
+    if(t>0){ e.classList.add('has'); active++; mins+=m; }
+    cells.appendChild(e);
+    const wk=Math.floor((days+lead)/7);
+    if(d.getDate()<=7 && !seen[d.getMonth()]){
+      seen[d.getMonth()]=1;
+      const lb=document.createElement('span'); lb.className='mon';
+      lb.style.gridColumnStart=wk+1;
+      lb.textContent=['січ','лют','бер','кві','тра','чер','лип','сер','вер','жов','лис','гру'][d.getMonth()];
+      months.appendChild(lb);
+    }
+    days++;
+  }
+  grid.appendChild(months); grid.appendChild(cells);
+
+  const inYear=state.log.filter(l=>l.date.startsWith(yearShown));
+  $('#yearSub').textContent = inYear.length
+    ? `${inYear.length} практик · ${mins} хвилин · ${active} днів із практикою`
+    : 'Цього року ще порожньо. Перша клітинка з’явиться після першої завершеної практики.';
+
+  const lg=$('#yearLegend');
+  lg.innerHTML = TIERS.map((t,idx)=>`<span class="lg"><i style="background:${t.c}"></i>${t.label}</span>`).join('');
+
+  cells.onclick=e=>{
+    const c=e.target.closest('.cell.has'); if(!c) return;
+    const list=state.log.filter(l=>l.date===c.dataset.iso);
+    $('#yearDetail').innerHTML = `<b>${c.dataset.iso}</b> · ${c.dataset.min} хв — ` +
+      list.map(l=>l.title).join(', ');
+  };
+}
+$('#yearPrev').onclick=()=>{ yearShown--; renderYear(); };
+$('#yearNext').onclick=()=>{ yearShown++; renderYear(); };
+
+/* ============ 7. МУЗИКА ============ */
+function renderMusic(){
+  const g=$('#ambienceGrid'); g.innerHTML='';
+  AMBIENCES.forEach(a=>{
+    const b=document.createElement('button'); b.className='track'+(Audio_.current()===a.id?' playing':'');
+    b.innerHTML=`<div class="wave" style="background:var(--g-${a.id==='none'?'rest':'flow'})">${a.icon}</div>
+      <div><div class="t">${a.name}</div><div class="d">${a.d}</div></div>`;
+    b.onclick=()=>{ Audio_.current()===a.id ? Audio_.stop() : Audio_.play(a.id); renderMusic(); };
+    g.appendChild(b);
+  });
+  const tg=$('#trackGrid'); tg.innerHTML='';
+  if(!state.tracks.length) tg.innerHTML='<div class="empty">Ще нічого не додано.</div>';
+  state.tracks.forEach(t=>{
+    const b=document.createElement('div'); b.className='track'+(Audio_.current()==='track:'+t.id?' playing':'');
+    b.innerHTML=`<div class="wave" style="background:var(--g-twist)">♪</div>
+      <div style="flex:1;min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</div>
+      <div class="d">${t.session?'до перезавантаження':'збережено'}</div></div>
+      <button class="btn btn-ghost btn-icon" data-t="${t.id}">✕</button>`;
+    b.onclick=e=>{
+      if(e.target.dataset.t){
+        state.tracks=state.tracks.filter(x=>x.id!==t.id); save(); buildMusicSelect(); renderMusic(); return;
+      }
+      Audio_.current()==='track:'+t.id ? Audio_.stop() : Audio_.play('track:'+t.id);
+      renderMusic();
+    };
+    tg.appendChild(b);
+  });
+}
+$('#addUrl').onclick=()=>{
+  const u=$('#trackUrl').value.trim(); if(!u) return;
+  const name=decodeURIComponent(u.split('/').pop().split('?')[0]) || 'Трек';
+  state.tracks.push({id:uid(), name, src:u, session:false});
+  $('#trackUrl').value=''; save(); buildMusicSelect(); renderMusic(); toast('Трек додано');
+};
+$('#pickFile').onclick=()=>$('#fileInput').click();
+$('#fileInput').onchange=e=>{
+  [...e.target.files].forEach(f=>{
+    state.tracks.push({id:uid(), name:f.name.replace(/\.[^.]+$/,''), src:URL.createObjectURL(f), session:true});
+  });
+  buildMusicSelect(); renderMusic(); toast('Додано на цю сесію');
+};
+$('#volAmb').oninput=e=>{ state.settings.volAmb=e.target.value/100; Audio_.setAmbVol(state.settings.volAmb); save(); };
+$('#volCue').oninput=e=>{ state.settings.volCue=e.target.value/100; Audio_.setCueVol(state.settings.volCue); save(); };
+$('#cueLead').onchange=e=>{ state.settings.cueLead=parseInt(e.target.value,10); save(); };
+$('#testCue').onclick=()=>{ Audio_.resume(); Audio_.tick(); buzz(40); setTimeout(()=>{Audio_.bell(); buzz([70,90,70]);},900); };
+$('#gapSec').onchange=e=>{ state.settings.gap=parseInt(e.target.value,10); save(); };
+$('#vibeOn').onchange=e=>{ state.settings.vibe = e.target.value==='1'; save(); if(state.settings.vibe) buzz(40); };
+$('#doExport').onclick=()=>{
+  const data={v:1, saved:new Date().toISOString(),
+    sequences:state.sequences.filter(s=>!s.preset), tracks:state.tracks.filter(t=>!t.session),
+    log:state.log, settings:state.settings};
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:'application/json'}));
+  a.download='dyhannia-'+isoLocal(new Date())+'.json'; a.click();
+  toast('Файл збережено');
+};
+$('#doImport').onclick=()=>$('#importInput').click();
+$('#importInput').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(!d.sequences) throw 0;
+      const mine=new Set(state.sequences.map(s=>s.id));
+      d.sequences.forEach(s=>{ if(!mine.has(s.id)) state.sequences.push(s); });
+      (d.tracks||[]).forEach(t=>{ if(!state.tracks.some(x=>x.id===t.id)) state.tracks.push(t); });
+      if(d.log) d.log.forEach(l=>{ if(!state.log.some(x=>x.date===l.date&&x.title===l.title&&x.sec===l.sec)) state.log.push(l); });
+      save(); renderLibrary(); buildMusicSelect(); renderMusic();
+      toast('Відновлено: '+d.sequences.length+' послідовностей');
+    }catch(err){ toast('Це не файл «Дихання» — перевір, який обрала'); }
+  };
+  r.readAsText(f);
+};
+
+/* ============ 8. ПЛЕЄР ============ */
+const Player = (()=>{
+  let steps=[], i=0, left=0, paused=false, raf=null, last=0, seq=null, cued=false, wake=null;
+  const R=96, C=2*Math.PI*R;
+
+  function flatten(s){
+    const out=[];
+    s.items.forEach(it=>{
+      const p=P[it.poseId];
+      if(it.both && p.bi){ out.push({p,sec:it.sec,side:'права'}); out.push({p,sec:it.sec,side:'ліва'}); }
+      else out.push({p,sec:it.sec,side:null});
+    });
+    const g = state.settings.gap|0;
+    if(!g) return out;
+    const withGaps=[];
+    out.forEach((st,idx)=>{
+      withGaps.push({p:st.p, side:st.side, sec:(idx===0?Math.max(g,5):g), gap:true, first:idx===0});
+      withGaps.push(st);
+    });
+    return withGaps;
+  }
+  function paint(){
+    const st=steps[i];
+    $('#pUa').textContent=st.p.ua;
+    $('#pSa').textContent = st.gap ? (st.first?'приготуйся':'перехід') : st.p.sa;
+    $('#pCue').textContent=st.p.cue;
+    $('#pSideWrap').innerHTML = st.side?`<span class="side">${st.side} сторона</span>`:'';
+    $('#player').classList.toggle('is-gap', !!st.gap);
+    $('#pCount').textContent=(i+1)+'/'+steps.length;
+    const c=CAT[st.p.cat].c;
+    $('#breath').style.background = st.gap
+      ? 'linear-gradient(150deg,rgba(255,255,255,.82),rgba(201,191,234,.42))'
+      : `linear-gradient(150deg,${c[0]},${c[1]})`;
+    const sky=$('#pSky').children;
+    sky[0].style.background=`radial-gradient(circle,${c[0]}cc,transparent 65%)`;
+    sky[1].style.background=`radial-gradient(circle,${c[1]}bb,transparent 65%)`;
+    sky[2].style.background=`radial-gradient(circle,${c[0]}88,transparent 65%)`;
+    const nx = st.gap ? null : steps[i+1];
+    $('#pNext').textContent = st.gap ? ''
+      : (nx ? 'Далі: '+nx.p.ua+(nx.side?' ('+nx.side+')':'') : 'Остання асана');
+    [...$('#pProgress').children].forEach((el,k)=>{ el.firstChild.style.width = k<i?'100%':(k===i?'0%':'0%'); });
+  }
+  function loop(t){
+    if(!last) last=t;
+    const dt=(t-last)/1000; last=t;
+    if(!paused){
+      left-=dt;
+      const lead=state.settings.cueLead;
+      if(lead>0 && !cued && left<=lead && left>0){ cued=true; Audio_.tick(); buzz(40); $('#breath').classList.add('bloom'); $('#pNext').classList.add('soon'); }
+      if(left<=0){
+        advance(true);
+        if(raf===null) return;              // практика завершилась
+        raf=requestAnimationFrame(loop); return;
+      }
+      $('#pTime').textContent=fmt(Math.ceil(left));
+      const frac=1-left/steps[i].sec;
+      $('#ringFill').style.strokeDasharray=C;
+      $('#ringFill').style.strokeDashoffset=C*(1-frac);
+      const bar=$('#pProgress').children[i]; if(bar) bar.firstChild.style.width=(frac*100)+'%';
+    }
+    raf=requestAnimationFrame(loop);
+  }
+  function go(n){
+    i=n; left=steps[i].sec; cued=false; last=0;
+    $('#breath').classList.remove('bloom'); $('#pNext').classList.remove('soon');
+    $('#pTime').textContent=fmt(left);
+    paint();
+  }
+  function advance(auto){
+    if(i>=steps.length-1){ finish(); return; }
+    if(auto){ Audio_.bell(); buzz([70,90,70]); }
+    go(i+1);
+  }
+  function finish(){
+    cancelAnimationFrame(raf); raf=null;
+    const total=steps.reduce((a,s)=>a+s.sec,0);
+    Audio_.bell();
+    state.log.push({date:isoLocal(new Date()), sec:total, title:seq.title});
+    save(); renderStats();
+    $('#doneTally').textContent = seq.title+' · '+human(total)+' · '+steps.length+' асан';
+    $('#doneScreen').classList.add('on');
+    setTimeout(()=>Audio_.stop(),4000);
+  }
+  return {
+    start(s){
+      seq=s; steps=flatten(s); if(!steps.length) return;
+      $('#pTitle').textContent=s.title||'Практика';
+      $('#pProgress').innerHTML=steps.map(st=>`<i style="flex:${st.sec}"><b></b></i>`).join('');
+      $('#doneScreen').classList.remove('on');
+      $('#player').classList.add('on'); document.body.classList.add('playing');
+      $('#breath').classList.remove('paused');
+      paused=false; $('#pPlay').textContent='❚❚';
+      Audio_.resume(); Audio_.play(s.music||'none');
+      go(0);
+      if(raf) cancelAnimationFrame(raf);
+      raf=requestAnimationFrame(loop);
+      if(navigator.wakeLock) navigator.wakeLock.request('screen').then(w=>wake=w).catch(()=>{});
+    },
+    toggle(){
+      paused=!paused; last=0;
+      paused ? Audio_.pause() : Audio_.unpause();
+      $('#pPlay').textContent=paused?'▶':'❚❚';
+      $('#breath').classList.toggle('paused',paused);
+    },
+    prev(){ if(i>0) go(i-1); else go(0); },
+    next(){ advance(false); },
+    extend(){ left+=30; cued=false; steps[i].sec+=30; $('#breath').classList.remove('bloom'); },
+    shorten(){
+      const s=steps[i];
+      const nl=Math.max(2, left-30);
+      s.sec=Math.max(5, Math.max(s.sec-30, nl));
+      left=nl; cued=false;
+      $('#breath').classList.remove('bloom'); $('#pNext').classList.remove('soon');
+    },
+    exit(){
+      cancelAnimationFrame(raf); raf=null; Audio_.stop();
+      $('#player').classList.remove('on'); document.body.classList.remove('playing');
+      if(wake){ try{wake.release();}catch(e){} wake=null; }
+    }
+  };
+})();
+$('#pPlay').onclick=()=>Player.toggle();
+$('#pPrev').onclick=()=>Player.prev();
+$('#pNextBtn').onclick=()=>Player.next();
+$('#pAdd').onclick=()=>Player.extend();
+$('#pSub').onclick=()=>Player.shorten();
+$('#pExit').onclick=()=>Player.exit();
+$('#doneClose').onclick=()=>{ Player.exit(); switchView('library'); };
+document.addEventListener('keydown',e=>{
+  if(!$('#player').classList.contains('on')) return;
+  if(e.code==='Space'){ e.preventDefault(); Player.toggle(); }
+  if(e.code==='ArrowRight') Player.next();
+  if(e.code==='ArrowLeft') Player.prev();
+  if(e.code==='Escape') Player.exit();
+});
+
+/* ============ 9. НАВІГАЦІЯ, ПАРАЛАКС, СТАРТ ============ */
+function switchView(v){
+  $$('.tab').forEach(t=>t.setAttribute('aria-selected', t.dataset.view===v));
+  $$('.view').forEach(s=>s.classList.toggle('on', s.id==='view-'+v));
+  if(v==='music') renderMusic();
+  if(v==='year') renderYear();
+  if(v==='editor' && !draft) openEditor(null);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$$('.tab').forEach(t=>t.onclick=()=>switchView(t.dataset.view));
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(!reduce){
+  let tx=0,ty=0,cx=0,cy=0;
+  addEventListener('pointermove',e=>{ tx=(e.clientX/innerWidth-.5); ty=(e.clientY/innerHeight-.5); });
+  addEventListener('scroll',()=>{ ty = (scrollY/600) - .5; });
+  (function drift(){
+    cx += (tx-cx)*.05; cy += (ty-cy)*.05;
+    const b=$$('#sky .blob');
+    b[0].style.transform=`translate(${cx*46}px,${cy*34}px)`;
+    b[1].style.transform=`translate(${cx*-58}px,${cy*40}px)`;
+    b[2].style.transform=`translate(${cx*34}px,${cy*-30}px)`;
+    b[3].style.transform=`translate(${cx*-30}px,${cy*-42}px)`;
+    requestAnimationFrame(drift);
+  })();
+  const ps=$('#pSky').children;
+  ps[0].style.cssText+='width:70vw;height:70vw;left:-10vw;top:-10vh;';
+  ps[1].style.cssText+='width:60vw;height:60vw;right:-14vw;bottom:-6vh;';
+  ps[2].style.cssText+='width:44vw;height:44vw;left:36vw;top:44vh;';
+}else{
+  const ps=$('#pSky').children;
+  ps[0].style.cssText+='width:70vw;height:70vw;left:-10vw;top:-10vh;';
+  ps[1].style.cssText+='width:60vw;height:60vw;right:-14vw;bottom:-6vh;';
+  ps[2].style.cssText+='width:44vw;height:44vw;left:36vw;top:44vh;';
+}
+
+async function save(){
+  await store.set('yoga:sequences', state.sequences.filter(s=>!s.preset));
+  await store.set('yoga:tracks', state.tracks.filter(t=>!t.session));
+  await store.set('yoga:log', state.log);
+  await store.set('yoga:settings', state.settings);
+}
+async function boot(){
+  const [seqs,tracks,log,settings] = await Promise.all([
+    store.get('yoga:sequences'), store.get('yoga:tracks'), store.get('yoga:log'), store.get('yoga:settings')
+  ]);
+  state.sequences = PRESETS.map(p=>({id:p.id,title:p.title,music:p.music,preset:true,
+    items:p.items.map(([poseId,sec,both])=>({poseId,sec,both:!!both}))}));
+  if(seqs&&seqs.length) state.sequences=state.sequences.concat(seqs);
+  if(tracks) state.tracks=tracks;
+  if(log) state.log=log;
+  if(settings) state.settings=Object.assign(state.settings,settings);
+
+  $('#volAmb').value=state.settings.volAmb*100;
+  $('#volCue').value=state.settings.volCue*100;
+  $('#cueLead').value=state.settings.cueLead;
+  $('#vibeOn').value=state.settings.vibe?'1':'0';
+  $('#gapSec').value=state.settings.gap;
+
+  renderCats(); renderLibrary(); buildMusicSelect(); renderMusic();
+}
+boot();
+
+/* ---- встановлення на телефон ---- */
+let deferredPrompt=null;
+addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferredPrompt=e; $('#installBtn').style.display=''; });
+$('#installBtn').onclick=async()=>{
+  if(!deferredPrompt) return toast('Меню браузера → «Додати на головний екран»');
+  deferredPrompt.prompt(); await deferredPrompt.userChoice;
+  deferredPrompt=null; $('#installBtn').style.display='none';
+};
+addEventListener('appinstalled',()=>{ $('#installBtn').style.display='none'; toast('Встановлено'); });
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
