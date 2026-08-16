@@ -79,7 +79,10 @@ input,select{font-family:inherit;color:inherit}
 
 /* ---------- shell ---------- */
 .wrap{position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:34px 22px 120px}
-.masthead{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:26px}
+.masthead{margin-bottom:26px}
+.brandline{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.topright{display:flex;gap:8px;align-items:center;flex:none}
+.streak{margin-top:18px;justify-content:flex-start}
 .brand h1{font-size:clamp(38px,7vw,68px);font-weight:300}
 .brand .sub{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);margin-top:8px}
 .streak{display:flex;gap:10px}
@@ -149,8 +152,11 @@ input,select{font-family:inherit;color:inherit}
 .dur button{width:26px;height:26px;border-radius:50%;font-size:15px;color:var(--ink-soft);display:grid;place-items:center}
 .dur button:hover{background:#fff;color:var(--ink)}
 .dur input{width:42px;text-align:center;border:0;background:none;font-family:'IBM Plex Mono',monospace;font-size:14px;outline:none}
-.side-toggle{font-size:11px;padding:5px 10px;border-radius:999px;border:1px solid var(--glass-line);background:rgba(255,255,255,.5);color:var(--ink-faint)}
-.side-toggle.on{background:var(--ink);color:var(--porcelain);border-color:transparent}
+.side-toggle{font-size:11px;padding:5px 10px;border-radius:999px;border:1px solid rgba(46,36,48,.10);
+  background:rgba(255,255,255,.34);color:var(--ink-faint);opacity:.75;transition:.2s}
+.side-toggle:hover{opacity:1}
+.side-toggle.on{background:rgba(255,255,255,.8);color:var(--ink-soft);border-color:rgba(46,36,48,.16);opacity:1;
+  box-shadow:inset 0 1px 0 #fff}
 .bar{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px}
 .empty{padding:34px;text-align:center;border-radius:var(--r-l);border:1px dashed rgba(46,36,48,.18);color:var(--ink-soft);background:rgba(255,255,255,.3)}
 .editor-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:20px}
@@ -176,10 +182,20 @@ input,select{font-family:inherit;color:inherit}
 .pose-row .cue{font-size:11.5px;color:var(--ink-faint);font-style:italic}
 .close-x{position:absolute;right:20px;top:20px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.6);display:grid;place-items:center}
 
+/* ---------- список доріжок практики ---------- */
+.pl{display:flex;flex-wrap:wrap;gap:5px;margin:2px 0 6px}
+.plchip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 6px 4px 8px;
+  border-radius:999px;background:rgba(255,255,255,.62);border:1px solid var(--glass-line);max-width:100%}
+.plchip b{font-size:10px;color:var(--ink-faint);font-weight:400}
+.plchip button{width:18px;height:18px;border-radius:50%;font-size:11px;color:var(--ink-faint);display:grid;place-items:center}
+.plchip button:hover{background:rgba(46,36,48,.09);color:var(--ink)}
+.plnone{font-size:13px;color:var(--ink-faint);padding:2px 0}
+#seqTracks select{border:0;background:none;font-size:13px;color:var(--ink-soft);outline:none;padding:2px 0;max-width:100%}
+
 /* ---------- бібліотека музики ---------- */
 .warn{padding:14px 16px;margin-bottom:14px;border-radius:var(--r-m);font-size:13.5px;line-height:1.6;
   background:rgba(232,178,90,.14);border:1px solid rgba(232,178,90,.45)}
-.gear{width:40px;height:40px;font-size:16px;align-self:center;flex:none;
+.gear{width:42px;height:42px;font-size:17px;flex:none;color:var(--ink-soft);
   background:var(--glass);border:1px solid var(--glass-line);box-shadow:var(--shade-2);
   backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border-radius:50%;display:grid;place-items:center}
 .gear:hover{background:#fff}
@@ -372,13 +388,17 @@ body.playing{overflow:hidden}
 
 <div class="wrap">
   <header class="masthead">
-    <div class="brand">
-      <h1>Дихання</h1>
-      <div class="sub">конструктор послідовностей</div>
+    <div class="brandline">
+      <div class="brand">
+        <h1>Дихання</h1>
+        <div class="sub">конструктор послідовностей</div>
+      </div>
+      <div class="topright">
+        <button class="btn btn-ghost" id="installBtn" style="display:none">Встановити</button>
+        <button class="gear" id="openSettings" title="Налаштування" aria-label="Налаштування">⚙</button>
+      </div>
     </div>
     <div class="streak">
-      <button class="btn btn-ghost" id="installBtn" style="display:none;align-self:center">Встановити</button>
-      <button class="p-btn gear" id="openSettings" title="Налаштування" aria-label="Налаштування">⚙</button>
       <div class="stat"><b id="statStreak" class="mono">0</b><span>днів поспіль</span></div>
       <div class="stat"><b id="statTotal" class="mono">0</b><span>практик</span></div>
       <div class="stat"><b id="statMin" class="mono">0</b><span>хвилин</span></div>
@@ -404,9 +424,9 @@ body.playing{overflow:hidden}
         <label for="seqTitle">Назва</label>
         <input id="seqTitle" type="text" placeholder="Ранкова практика">
       </div>
-      <div class="field">
-        <label for="seqTrack">Музика</label>
-        <select id="seqTrack"></select>
+      <div class="field" style="flex:1 1 220px">
+        <label>Музика</label>
+        <div id="seqTracks"></div>
       </div>
       <button class="btn btn-ghost" id="addPoseBtn">+ Додати асану</button>
     </div>
@@ -726,6 +746,7 @@ const Vault = (()=>{
     if(n==='QuotaExceededError') return 'на пристрої забракло місця';
     if(n==='SecurityError' || n==='InvalidStateError') return 'браузер заборонив сховище (приватний режим або файл відкрито з диска)';
     if(n==='DataCloneError') return 'браузер не зміг зберегти сам файл';
+    if(n==='RangeError' || /alloc|memory/i.test(e.message||'')) return 'файл завеликий для пам\'яті пристрою';
     if(n==='NotFoundError') return 'сховище пошкоджене — спробуй «Полагодити сховище»';
     return (n ? n+': ' : '') + (e.message || 'помилка');
   }
@@ -741,18 +762,27 @@ const Vault = (()=>{
       return state_;
     },
     async put(id, file){
-      // File зберігаємо як байти — так надійніше, ніж класти сам File:
-      // частина браузерів не вміє клонувати File у сховище
-      const buf = await file.arrayBuffer();
+      const type = file.type || 'audio/mpeg';
+      // 1) кладемо сам файл — не вимагає пам'яті під копію, тримає великі файли
       try{
-        return await tx('readwrite', s=>s.put({id, buf, type:file.type||'audio/mpeg', name:file.name}));
-      }catch(e){ lastErr = describe(e); throw e; }
+        return await tx('readwrite', s=>s.put({id, blob:file, type, name:file.name}));
+      }catch(e1){
+        lastErr = describe(e1);
+        // 2) запасний шлях для браузерів, які не вміють класти File
+        if(e1 && e1.name === 'DataCloneError'){
+          try{
+            const buf = await file.arrayBuffer();
+            return await tx('readwrite', s=>s.put({id, buf, type, name:file.name}));
+          }catch(e2){ lastErr = describe(e2); throw e2; }
+        }
+        throw e1;
+      }
     },
     async blob(id){
       const rec = await tx('readonly', s=>s.get(id));
       if(!rec) return null;
-      if(rec.buf) return new Blob([rec.buf], {type:rec.type||'audio/mpeg'});
-      if(rec.blob) return rec.blob;      // записи старого формату
+      if(rec.blob) return rec.blob;
+      if(rec.buf)  return new Blob([rec.buf], {type:rec.type||'audio/mpeg'});
       return null;
     },
     del(id){ return tx('readwrite', s=>s.delete(id)); },
@@ -768,7 +798,10 @@ const Vault = (()=>{
     },
     async size(){
       if(navigator.storage && navigator.storage.estimate){
-        try{ const e = await navigator.storage.estimate(); return e.usage||0; }catch(err){}
+        try{
+          const e = await navigator.storage.estimate();
+          return {used:e.usage||0, total:e.quota||0};
+        }catch(err){}
       }
       return null;
     },
@@ -783,7 +816,24 @@ const Vault = (()=>{
 
 /* ============ 3. ЗВУКОВІ СИГНАЛИ ============ */
 const Audio_ = (()=>{
-  let ctx=null, cueGain=null, el=null, elUrl=null;
+  let ctx=null, cueGain=null, el=null, elUrl=null, queue=[], qi=0;
+
+  async function startAt(i){
+    if(!queue.length) return;
+    qi = (i + queue.length) % queue.length;
+    try{
+      const b = await Vault.blob(queue[qi]);
+      if(!b){ if(queue.length>1) return startAt(qi+1); return; }
+      if(el){ el.pause(); el.src=''; }
+      if(elUrl){ URL.revokeObjectURL(elUrl); }
+      elUrl = URL.createObjectURL(b);
+      el = new Audio(elUrl);
+      el.volume = state.settings.volTrack;
+      el.loop = (queue.length === 1);              // одна доріжка — по колу
+      el.onended = ()=>{ if(queue.length>1) startAt(qi+1); };  // список — далі й на початок
+      await el.play();
+    }catch(e){ /* тиша краща за падіння */ }
+  }
   function ensure(){
     if(ctx) return ctx;
     ctx = new (window.AudioContext||window.webkitAudioContext)();
@@ -794,22 +844,18 @@ const Audio_ = (()=>{
     setCueVol(v){ if(cueGain) cueGain.gain.value=v; },
     setTrackVol(v){ if(el) el.volume=v; },
     resume(){ if(ctx && ctx.state==='suspended') ctx.resume(); },
-    async playTrack(id){
+    async playTrack(ids){
       this.stopTrack();
-      if(!id) return;
-      try{
-        const b = await Vault.blob(id);
-        if(!b) return;
-        elUrl = URL.createObjectURL(b);
-        el = new Audio(elUrl);
-        el.loop = true; el.volume = state.settings.volTrack;
-        await el.play();
-      }catch(e){ toast('Не вдалося відтворити цей файл'); this.stopTrack(); }
+      const list = Array.isArray(ids) ? ids.slice() : (ids ? [ids] : []);
+      if(!list.length) return;
+      queue = list; qi = 0;
+      await startAt(0);
     },
     pauseTrack(){ if(el) el.pause(); },
     resumeTrack(){ if(el) el.play().catch(()=>{}); },
     stopTrack(){
-      if(el){ el.pause(); el.src=''; el=null; }
+      queue=[]; qi=0;
+      if(el){ el.onended=null; el.pause(); el.src=''; el=null; }
       if(elUrl){ URL.revokeObjectURL(elUrl); elUrl=null; }
     },
     playing(){ return !!el && !el.paused; },
@@ -844,10 +890,15 @@ function fmt(sec){ const m=Math.floor(sec/60), s=sec%60; return m+':'+String(s).
 function human(sec){ const m=Math.round(sec/60); return m<1 ? sec+' с' : m+' хв'; }
 let toastT;
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2600); }
-function trackName(id){
-  if(!id) return '';
-  const t=state.tracks.find(x=>x.id===id);
-  return t ? ' · ♪ '+t.name : '';
+function seqTracksOf(seq){
+  if(seq.tracks && seq.tracks.length) return seq.tracks;
+  return seq.track ? [seq.track] : [];
+}
+function trackName(seq){
+  const l=seqTracksOf(seq).filter(id=>state.tracks.some(t=>t.id===id));
+  if(!l.length) return '';
+  if(l.length===1){ const t=state.tracks.find(x=>x.id===l[0]); return ' · ♪ '+t.name; }
+  return ' · ♪ '+l.length+' доріжки';
 }
 function seqSeconds(seq){ return seq.items.reduce((a,i)=>a + i.sec*((i.both&&P[i.poseId].bi)?2:1), 0); }
 
@@ -860,7 +911,7 @@ function renderLibrary(){
     card.innerHTML=`
       <div class="aura" style="background:${CAT[P[seq.items[0].poseId].cat].g}"></div>
       <h3>${seq.title}</h3>
-      <div class="meta mono">${human(seqSeconds(seq))} · ${seq.items.length} асан${trackName(seq.track)}</div>
+      <div class="meta mono">${human(seqSeconds(seq))} · ${seq.items.length} асан${trackName(seq)}</div>
       <div class="chips">${cats.map(c=>`<span class="chip">${CAT[c].ua}</span>`).join('')}</div>
       <div class="card-actions">
         <button class="btn btn-primary" data-play="${seq.id}">Почати</button>
@@ -914,11 +965,10 @@ function openEditor(seq){
     draft.id = uid(); draft.preset = false; draft.title = seq.title + ' — моя версія';
     toast('Готові практики не змінюються — відкрито копію');
   } else {
-    draft = seq ? JSON.parse(JSON.stringify(seq)) : {id:uid(), title:'', items:[], preset:false};
+    draft = seq ? JSON.parse(JSON.stringify(seq)) : {id:uid(), title:'', tracks:[], items:[], preset:false};
   }
   $('#seqTitle').value = draft.title;
-  buildTrackSelect();
-  $('#seqTrack').value = draft.track || '';
+  renderSeqTracks();
   $('#deleteSeq').style.display = state.sequences.some(s=>s.id===draft.id) ? '' : 'none';
   renderRibbon();
   switchView('editor');
@@ -1003,15 +1053,38 @@ function attachDrag(){
 }
 
 $('#seqTitle').addEventListener('input',e=>draft.title=e.target.value);
-$('#seqTrack').addEventListener('change',e=>draft.track=e.target.value||null);
-function buildTrackSelect(){
-  const sel=$('#seqTrack'); if(!sel) return;
-  const cur=sel.value;
-  sel.innerHTML='';
-  sel.appendChild(new Option('без музики',''));
-  state.tracks.forEach(t=>sel.appendChild(new Option(t.name, t.id)));
-  sel.value = cur;
+function draftTracks(){
+  if(!draft) return [];
+  if(!draft.tracks) draft.tracks = draft.track ? [draft.track] : [];   // старий формат
+  return draft.tracks;
 }
+function renderSeqTracks(){
+  const box=$('#seqTracks'); if(!box || !draft) return;
+  const list=draftTracks().filter(id=>state.tracks.some(t=>t.id===id));
+  draft.tracks=list;
+  const avail=state.tracks.filter(t=>!list.includes(t.id));
+  box.innerHTML =
+    (list.length
+      ? '<div class="pl">'+list.map((id,i)=>{
+          const t=state.tracks.find(x=>x.id===id);
+          return `<span class="plchip"><b class="mono">${i+1}</b>${t.name}<button data-up="${i}" title="Вище">↑</button><button data-rm="${i}" title="Прибрати">✕</button></span>`;
+        }).join('')+'</div>'
+      : '<div class="plnone">без музики</div>') +
+    (avail.length
+      ? `<select id="addTrack"><option value="">+ додати доріжку…</option>${avail.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select>`
+      : (state.tracks.length ? '' : '<div class="plnone" style="margin-top:6px">завантаж файли у «Бібліотеці»</div>'));
+}
+$('#seqTracks').addEventListener('change',e=>{
+  if(e.target.id!=='addTrack') return;
+  const id=e.target.value; if(!id) return;
+  draftTracks().push(id); renderSeqTracks();
+});
+$('#seqTracks').addEventListener('click',e=>{
+  const up=e.target.closest('[data-up]'), rm=e.target.closest('[data-rm]');
+  const l=draftTracks();
+  if(up){ const i=+up.dataset.up; if(i>0){ [l[i-1],l[i]]=[l[i],l[i-1]]; renderSeqTracks(); } }
+  if(rm){ l.splice(+rm.dataset.rm,1); renderSeqTracks(); }
+});
 $('#addPoseBtn').onclick=()=>{ $('#poseSheet').classList.add('on'); renderPoseList(); $('#poseSearch').focus(); };
 $('#closeSheet').onclick=()=>$('#poseSheet').classList.remove('on');
 $('#poseSheet').addEventListener('click',e=>{ if(e.target.id==='poseSheet') e.currentTarget.classList.remove('on'); });
@@ -1274,7 +1347,7 @@ async function renderTracks(){
   } else {
     box.innerHTML='';
     state.tracks.forEach(t=>{
-      const used=state.sequences.filter(s=>s.track===t.id).length;
+      const used=state.sequences.filter(s=>seqTracksOf(s).includes(t.id)).length;
       const row=document.createElement('div'); row.className='trow'+(previewing===t.id?' on':'');
       row.innerHTML=`
         <button class="tplay" data-play="${t.id}">${previewing===t.id?'❚❚':'▶'}</button>
@@ -1287,14 +1360,16 @@ async function renderTracks(){
     });
   }
   const s=await Vault.size();
-  $('#vaultSize').textContent = s ? 'зайнято '+fmtBytes(s) : '';
+  $('#vaultSize').textContent = s
+    ? 'зайнято '+fmtBytes(s.used)+(s.total?' з '+fmtBytes(s.total):'')
+    : '';
 }
 $('#vaultWarn').addEventListener('click', async e=>{
   if(!e.target.closest('#vaultFix')) return;
   toast('Перебудовую сховище…');
   const st = await Vault.reset();
   state.tracks=[]; state.sequences.forEach(s=>s.track=null);
-  save(); renderTracks(); buildTrackSelect(); renderLibrary();
+  save(); renderTracks(); renderSeqTracks(); renderLibrary();
   toast(st==='ok' ? 'Сховище перебудовано — спробуй завантажити ще раз' : 'Не вдалось: '+Vault.error());
 });
 $('#trackList').addEventListener('click', async e=>{
@@ -1307,12 +1382,15 @@ $('#trackList').addEventListener('click', async e=>{
   }
   if(dl){
     const id=dl.dataset.del;
-    const used=state.sequences.filter(s=>s.track===id);
+    const used=state.sequences.filter(s=>seqTracksOf(s).includes(id));
     if(previewing===id){ Audio_.stopTrack(); previewing=null; }
     await Vault.del(id);
     state.tracks=state.tracks.filter(t=>t.id!==id);
-    used.forEach(s=>s.track=null);
-    save(); renderTracks(); buildTrackSelect(); renderLibrary();
+    used.forEach(s=>{
+      if(s.tracks) s.tracks=s.tracks.filter(x=>x!==id);
+      if(s.track===id) s.track=null;
+    });
+    save(); renderTracks(); renderSeqTracks(); renderLibrary();
     toast(used.length?'Видалено — практики лишились без музики':'Видалено');
   }
 });
@@ -1321,20 +1399,23 @@ $('#fileInput').onchange=async e=>{
   const files=[...e.target.files]; e.target.value='';
   if(!files.length) return;
   if(await Vault.check()==='blocked'){ renderTracks(); toast('Сховище недоступне — читай попередження вище'); return; }
-  let ok=0, fail=0;
+  let ok=0, fail=0, lastFail='';
   for(const f of files){
-    if(f.size > 40*1024*1024){ toast(f.name+' завеликий (понад 40 МБ)'); fail++; continue; }
+    if(f.size > 300*1024*1024){ toast(f.name+' завеликий (понад 300 МБ)'); fail++; continue; }
     const id=uid();
     try{
       await Vault.put(id, f);
       state.tracks.push({id, name:f.name.replace(/\.[^.]+$/,''), size:f.size});
       ok++;
-    }catch(err){ fail++; console.error('Дихання: не збереглось', f.name, err); }
+    }catch(err){
+      fail++; lastFail = (err && (err.name||err.message)) || 'невідома причина';
+      console.error('Дихання: не збереглось', f.name, err);
+    }
   }
   await Vault.persist();
-  save(); renderTracks(); buildTrackSelect();
+  save(); renderTracks(); renderSeqTracks();
   if(ok) toast(ok===1?'Файл збережено':ok+' файли збережено');
-  if(fail && !ok) toast('Не зберігається: '+Vault.error());
+  if(fail && !ok) toast('Не зберігається: '+(Vault.error() || lastFail));
 };
 $('#volTrack').oninput=e=>{ state.settings.volTrack=e.target.value/100; Audio_.setTrackVol(state.settings.volTrack); save(); };
 
@@ -1432,7 +1513,8 @@ const Player = (()=>{
       paused=false; $('#pPlay').textContent='❚❚';
       Audio_.resume();
       if(previewing){ Audio_.stopTrack(); previewing=null; }
-      if(s.track) Audio_.playTrack(s.track);
+      const tl = seqTracksOf(s).filter(id=>state.tracks.some(t=>t.id===id));
+      if(tl.length) Audio_.playTrack(tl);
       go(0);
       if(raf) cancelAnimationFrame(raf);
       raf=requestAnimationFrame(loop);
@@ -1481,7 +1563,8 @@ function switchView(v){
   $$('.tab').forEach(t=>t.setAttribute('aria-selected', t.dataset.view===v));
   $$('.view').forEach(s=>s.classList.toggle('on', s.id==='view-'+v));
   if(v==='year') renderYear();
-  if(v==='library'){ renderTracks(); buildTrackSelect(); }
+  if(v==='library'){ renderTracks(); }
+  if(v==='editor'){ renderSeqTracks(); }
   if(v!=='library' && previewing){ Audio_.stopTrack(); previewing=null; renderTracks(); }
   if(v==='editor' && !draft) openEditor(null);
   window.scrollTo({top:0,behavior:'smooth'});
@@ -1535,7 +1618,10 @@ async function boot(){
       const lost=state.tracks.filter(t=>!have.has(t.id));
       if(lost.length){
         state.tracks=state.tracks.filter(t=>have.has(t.id));
-        state.sequences.forEach(s=>{ if(s.track && !have.has(s.track)) s.track=null; });
+        state.sequences.forEach(s=>{
+          if(s.track && !have.has(s.track)) s.track=null;
+          if(s.tracks) s.tracks=s.tracks.filter(id=>have.has(id));
+        });
         save();
       }
     }catch(e){}
@@ -1551,7 +1637,7 @@ async function boot(){
 
   renderCats(); renderLibrary(); renderTracks();
 }
-const BUILD = 8;
+const BUILD = 9;
 const BUILD_DATE = '16.08.2026';
 $('#buildInfo').textContent = 'збірка '+BUILD+' · '+BUILD_DATE;
 
