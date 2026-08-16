@@ -473,6 +473,7 @@ body.playing{overflow:hidden}
   <div class="sheet-panel">
     <button class="close-x" id="closeSet">✕</button>
     <h2>Налаштування</h2>
+    <p class="mono" id="buildInfo" style="font-size:12px;color:var(--ink-faint);margin:4px 0 18px"></p>
     <h2 class="section">Сигнали переходу</h2>
     <p class="section-sub">Тихий сигнал перед кінцем пози і м'який дзвін на переході. Звучать поверх музики.</p>
     <div class="slider-row"><label for="volCue">Гучність</label><input type="range" id="volCue" min="0" max="100"></div>
@@ -1550,6 +1551,10 @@ async function boot(){
 
   renderCats(); renderLibrary(); renderTracks();
 }
+const BUILD = 8;
+const BUILD_DATE = '16.08.2026';
+$('#buildInfo').textContent = 'збірка '+BUILD+' · '+BUILD_DATE;
+
 boot();
 
 /* ---- встановлення на телефон ---- */
@@ -1562,7 +1567,25 @@ $('#installBtn').onclick=async()=>{
 };
 addEventListener('appinstalled',()=>{ $('#installBtn').style.display='none'; toast('Встановлено'); });
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
-  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      reg.update();
+      reg.addEventListener('updatefound',()=>{
+        const nw=reg.installing;
+        if(!nw) return;
+        nw.addEventListener('statechange',()=>{
+          if(nw.state==='installed' && navigator.serviceWorker.controller){
+            toast('Є нова версія — оновлюю…');
+            nw.postMessage('skip-waiting');
+          }
+        });
+      });
+    }).catch(()=>{});
+    let reloaded=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(reloaded) return; reloaded=true; location.reload();
+    });
+  });
 }
 </script>
 </body>

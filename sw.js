@@ -1,7 +1,13 @@
 /* «Дихання» — офлайн-кеш.
-   Піднімай версію нижче щоразу, коли міняєш index.html,
-   інакше телефон продовжить показувати стару копію. */
-const V = 'dyhannia-v7';
+
+   ВАЖЛИВО: цей файл віддає сторінку «спочатку з мережі».
+   Тобто щойно є інтернет — застосунок бере свіжу версію з сервера,
+   а кеш використовує лише як запасний варіант, коли мережі немає.
+   Через це оновлення більше не «застрягають» у кеші.
+
+   Версію нижче варто піднімати при кожній заміні файлів. */
+const V = 'dyhannia-v8';
+
 const CORE = [
   './',
   './index.html',
@@ -12,7 +18,11 @@ const CORE = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(V).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(V)
+      .then(c => c.addAll(CORE).catch(() => {}))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {
@@ -23,16 +33,46 @@ self.addEventListener('activate', e => {
   );
 });
 
+self.addEventListener('message', e => {
+  if (e.data === 'skip-waiting') self.skipWaiting();
+});
+
+function isPage(req) {
+  return req.mode === 'navigate' ||
+         req.destination === 'document' ||
+         req.url.endsWith('/') ||
+         req.url.endsWith('index.html');
+}
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+  const sameOrigin = url.origin === location.origin;
+
+  // Сторінка та власні файли — СПОЧАТКУ З МЕРЕЖІ
+  if (sameOrigin && (isPage(req) || url.pathname.endsWith('.js') || url.pathname.endsWith('.webmanifest'))) {
+    e.respondWith(
+      fetch(req, { cache: 'no-store' })
+        .then(res => {
+          if (res && res.status === 200) {
+            const copy = res.clone();
+            caches.open(V).then(c => c.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // Картинки та шрифти — спочатку з кешу
   e.respondWith(
     caches.match(req).then(hit => {
       if (hit) return hit;
       return fetch(req).then(res => {
-        // шрифти Google кешуємо на льоту, щоб офлайн виглядало так само
-        const url = new URL(req.url);
-        const cacheable = url.origin === location.origin ||
+        const cacheable = sameOrigin ||
                           url.hostname.endsWith('fonts.googleapis.com') ||
                           url.hostname.endsWith('fonts.gstatic.com');
         if (cacheable && res.status === 200) {
@@ -40,7 +80,7 @@ self.addEventListener('fetch', e => {
           caches.open(V).then(c => c.put(req, copy));
         }
         return res;
-      }).catch(() => caches.match('./index.html'));
+      }).catch(() => hit);
     })
   );
 });
