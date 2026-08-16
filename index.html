@@ -88,9 +88,11 @@ input,select{font-family:inherit;color:inherit}
 .stat b{display:block;font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:400;line-height:1}
 .stat span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
 
-.tabs{display:flex;gap:6px;padding:6px;border-radius:999px;background:var(--glass);border:1px solid var(--glass-line);
-  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:var(--shade-2);width:fit-content;margin-bottom:30px}
-.tab{padding:9px 20px;border-radius:999px;font-size:14px;color:var(--ink-soft);transition:.25s}
+.tabs{display:flex;gap:4px;padding:5px;border-radius:999px;background:var(--glass);border:1px solid var(--glass-line);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:var(--shade-2);
+  width:fit-content;max-width:100%;margin-bottom:30px}
+.tab{padding:9px 18px;border-radius:999px;font-size:14px;color:var(--ink-soft);transition:.25s;
+  white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .tab[aria-selected="true"]{background:linear-gradient(135deg,#fff,rgba(255,255,255,.6));color:var(--ink);box-shadow:var(--shade-1),inset 0 1px 0 #fff}
 .view{display:none;animation:rise .5s cubic-bezier(.2,.8,.2,1)}
 .view.on{display:block}
@@ -331,7 +333,12 @@ body.playing{overflow:hidden}
   .brand h1{font-size:clamp(30px,9.5vw,44px)}
   .brand .sub{font-size:11px;margin-top:5px}
   .masthead{margin-bottom:18px;align-items:center}
-  .tabs{margin-bottom:20px}
+  .tabs{margin-bottom:20px;width:100%;justify-content:space-between;
+    overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:9px 9px;font-size:12.5px;flex:1 1 auto}
+  .masthead{gap:12px}
+  .streak{gap:6px;flex:1 1 auto;justify-content:flex-end}
   .stat{min-width:0;padding:8px 11px}
   .stat b{font-size:19px}
   .stat span{font-size:9.5px;letter-spacing:.08em}
@@ -660,41 +667,104 @@ let sheetCat = 'all';
 /* ============ 2b. СХОВИЩЕ АУДІОФАЙЛІВ (IndexedDB) ============ */
 const Vault = (()=>{
   const DB='dyhannia-audio', ST='tracks';
-  let dbp=null;
-  function open(){
-    if(dbp) return dbp;
-    dbp = new Promise((res,rej)=>{
-      if(!window.indexedDB) return rej(new Error('no idb'));
-      const r = indexedDB.open(DB, 1);
-      r.onupgradeneeded = ()=>{ const d=r.result; if(!d.objectStoreNames.contains(ST)) d.createObjectStore(ST,{keyPath:'id'}); };
+  let dbp=null, state_='unknown', lastErr='';
+
+  function openAt(version){
+    return new Promise((res,rej)=>{
+      let r;
+      try{ r = version ? indexedDB.open(DB, version) : indexedDB.open(DB); }
+      catch(e){ return rej(e); }
+      r.onupgradeneeded = ()=>{
+        const d = r.result;
+        if(!d.objectStoreNames.contains(ST)) d.createObjectStore(ST,{keyPath:'id'});
+      };
       r.onsuccess = ()=>res(r.result);
-      r.onerror  = ()=>rej(r.error);
+      r.onerror   = ()=>rej(r.error || new Error('open failed'));
+      r.onblocked = ()=>rej(new Error('blocked'));
     });
+  }
+
+  // відкриваємо і ГАРАНТУЄМО, що сховище всередині існує:
+  // якщо база лишилась зі старої версії без нього — піднімаємо версію й створюємо
+  async function open(){
+    if(dbp) return dbp;
+    dbp = (async ()=>{
+      if(!window.indexedDB) throw new Error('IndexedDB недоступна');
+      let db = await openAt();
+      if(!db.objectStoreNames.contains(ST)){
+        const v = db.version + 1;
+        db.close();
+        db = await openAt(v);
+      }
+      db.onversionchange = ()=>{ try{ db.close(); }catch(e){} dbp=null; };
+      return db;
+    })();
+    dbp.catch(()=>{ dbp=null; });
     return dbp;
   }
+
   function tx(mode, fn){
     return open().then(db=>new Promise((res,rej)=>{
-      const t = db.transaction(ST, mode), s = t.objectStore(ST);
-      const req = fn(s);
+      let t;
+      try{ t = db.transaction(ST, mode); }
+      catch(e){ return rej(e); }
+      const s = t.objectStore(ST);
+      let req;
+      try{ req = fn(s); }
+      catch(e){ return rej(e); }
+      if(req) req.onerror = ()=>rej(req.error);
       t.oncomplete = ()=>res(req && req.result);
       t.onerror = ()=>rej(t.error);
-      t.onabort = ()=>rej(t.error);
+      t.onabort = ()=>rej(t.error || new Error('abort'));
     }));
   }
-  let state_ = 'unknown';   // unknown | ok | blocked
+
+  function describe(e){
+    if(!e) return 'невідома помилка';
+    const n = e.name || '';
+    if(n==='QuotaExceededError') return 'на пристрої забракло місця';
+    if(n==='SecurityError' || n==='InvalidStateError') return 'браузер заборонив сховище (приватний режим або файл відкрито з диска)';
+    if(n==='DataCloneError') return 'браузер не зміг зберегти сам файл';
+    if(n==='NotFoundError') return 'сховище пошкоджене — спробуй «Полагодити сховище»';
+    return (n ? n+': ' : '') + (e.message || 'помилка');
+  }
+
   return {
     ok(){ return state_ !== 'blocked'; },
     status(){ return state_; },
+    error(){ return lastErr; },
     async check(){
-      if(!window.indexedDB){ state_='blocked'; return 'blocked'; }
-      try{ await open(); state_='ok'; }
-      catch(e){ state_='blocked'; }
+      if(!window.indexedDB){ state_='blocked'; lastErr='IndexedDB недоступна'; return state_; }
+      try{ await open(); state_='ok'; lastErr=''; }
+      catch(e){ state_='blocked'; lastErr=describe(e); }
       return state_;
     },
-    put(rec){ return tx('readwrite', s=>s.put(rec)); },
-    get(id){  return tx('readonly',  s=>s.get(id)); },
-    del(id){  return tx('readwrite', s=>s.delete(id)); },
-    all(){    return tx('readonly',  s=>s.getAll()); },
+    async put(id, file){
+      // File зберігаємо як байти — так надійніше, ніж класти сам File:
+      // частина браузерів не вміє клонувати File у сховище
+      const buf = await file.arrayBuffer();
+      try{
+        return await tx('readwrite', s=>s.put({id, buf, type:file.type||'audio/mpeg', name:file.name}));
+      }catch(e){ lastErr = describe(e); throw e; }
+    },
+    async blob(id){
+      const rec = await tx('readonly', s=>s.get(id));
+      if(!rec) return null;
+      if(rec.buf) return new Blob([rec.buf], {type:rec.type||'audio/mpeg'});
+      if(rec.blob) return rec.blob;      // записи старого формату
+      return null;
+    },
+    del(id){ return tx('readwrite', s=>s.delete(id)); },
+    all(){   return tx('readonly',  s=>s.getAll()); },
+    async reset(){
+      try{ if(dbp){ (await dbp).close(); } }catch(e){}
+      dbp=null;
+      await new Promise(res=>{
+        const r = indexedDB.deleteDatabase(DB);
+        r.onsuccess = r.onerror = r.onblocked = ()=>res();
+      });
+      return this.check();
+    },
     async size(){
       if(navigator.storage && navigator.storage.estimate){
         try{ const e = await navigator.storage.estimate(); return e.usage||0; }catch(err){}
@@ -727,9 +797,9 @@ const Audio_ = (()=>{
       this.stopTrack();
       if(!id) return;
       try{
-        const rec = await Vault.get(id);
-        if(!rec || !rec.blob) return;
-        elUrl = URL.createObjectURL(rec.blob);
+        const b = await Vault.blob(id);
+        if(!b) return;
+        elUrl = URL.createObjectURL(b);
         el = new Audio(elUrl);
         el.loop = true; el.volume = state.settings.volTrack;
         await el.play();
@@ -1185,9 +1255,16 @@ let previewing=null;
 async function renderTracks(){
   const box=$('#trackList'); if(!box) return;
   const warn=$('#vaultWarn');
+  const local = location.protocol === 'file:';
   if(Vault.status()==='blocked'){
-    warn.innerHTML='<div class="warn"><b>Сховище недоступне.</b> Найчастіше так буває, коли файл відкрито напряму з диска (адреса починається з <span class="mono">file://</span>) — у цьому режимі браузер забороняє зберігати аудіо. Поклади застосунок на github.io або встанови його на телефон, і завантаження запрацює. Інструкція в README.</div>';
+    warn.innerHTML='<div class="warn"><b>Сховище недоступне:</b> '+Vault.error()+'.'+
+      (local ? ' Схоже, файл відкрито напряму з диска — у цьому режимі браузер забороняє зберігати аудіо. Поклади застосунок на github.io, і завантаження запрацює.' : '')+
+      ' <button class="btn btn-ghost" id="vaultFix" style="margin-top:10px">Полагодити сховище</button></div>';
     $('#pickFile').disabled=true; $('#pickFile').style.opacity=.45;
+  } else if(Vault.error()){
+    warn.innerHTML='<div class="warn"><b>Останнє завантаження не вдалося:</b> '+Vault.error()+
+      '. <button class="btn btn-ghost" id="vaultFix" style="margin-top:10px">Полагодити сховище</button></div>';
+    $('#pickFile').disabled=false; $('#pickFile').style.opacity=1;
   } else {
     warn.innerHTML=''; $('#pickFile').disabled=false; $('#pickFile').style.opacity=1;
   }
@@ -1211,6 +1288,14 @@ async function renderTracks(){
   const s=await Vault.size();
   $('#vaultSize').textContent = s ? 'зайнято '+fmtBytes(s) : '';
 }
+$('#vaultWarn').addEventListener('click', async e=>{
+  if(!e.target.closest('#vaultFix')) return;
+  toast('Перебудовую сховище…');
+  const st = await Vault.reset();
+  state.tracks=[]; state.sequences.forEach(s=>s.track=null);
+  save(); renderTracks(); buildTrackSelect(); renderLibrary();
+  toast(st==='ok' ? 'Сховище перебудовано — спробуй завантажити ще раз' : 'Не вдалось: '+Vault.error());
+});
 $('#trackList').addEventListener('click', async e=>{
   const pl=e.target.closest('[data-play]'), dl=e.target.closest('[data-del]');
   if(pl){
@@ -1240,7 +1325,7 @@ $('#fileInput').onchange=async e=>{
     if(f.size > 40*1024*1024){ toast(f.name+' завеликий (понад 40 МБ)'); fail++; continue; }
     const id=uid();
     try{
-      await Vault.put({id, blob:f, name:f.name});
+      await Vault.put(id, f);
       state.tracks.push({id, name:f.name.replace(/\.[^.]+$/,''), size:f.size});
       ok++;
     }catch(err){ fail++; console.error('Дихання: не збереглось', f.name, err); }
@@ -1248,7 +1333,7 @@ $('#fileInput').onchange=async e=>{
   await Vault.persist();
   save(); renderTracks(); buildTrackSelect();
   if(ok) toast(ok===1?'Файл збережено':ok+' файли збережено');
-  if(fail && !ok) toast('Не вдалося зберегти — сховище відмовило');
+  if(fail && !ok) toast('Не зберігається: '+Vault.error());
 };
 $('#volTrack').oninput=e=>{ state.settings.volTrack=e.target.value/100; Audio_.setTrackVol(state.settings.volTrack); save(); };
 
