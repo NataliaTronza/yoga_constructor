@@ -51,7 +51,7 @@
   --r-s:10px; --r-m:18px; --r-l:26px; --r-xl:34px;
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0}
+html,body{margin:0;padding:0;max-width:100%;overflow-x:clip}
 body{
   min-height:100vh;
   background:var(--porcelain);
@@ -68,7 +68,7 @@ input,select{font-family:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--rose);outline-offset:3px;border-radius:6px}
 
 /* ---------- ambient background ---------- */
-#sky{position:fixed;inset:-15%;z-index:0;pointer-events:none;filter:blur(60px);opacity:.85}
+#sky{position:fixed;inset:-15%;z-index:0;pointer-events:none;filter:blur(60px);opacity:.85;overflow:hidden}
 .blob{position:absolute;border-radius:50%;will-change:transform}
 .b1{width:52vw;height:52vw;left:-8vw;top:-6vw;background:radial-gradient(circle at 35% 35%,rgba(201,191,234,.95),rgba(201,191,234,0) 68%)}
 .b2{width:46vw;height:46vw;right:-6vw;top:6vh;background:radial-gradient(circle at 50% 50%,rgba(246,201,168,.9),rgba(246,201,168,0) 68%)}
@@ -136,10 +136,11 @@ input,select{font-family:inherit;color:inherit}
   backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
   transition:box-shadow .25s,transform .25s}
 .slab.dragging{opacity:.6;transform:scale(.985);box-shadow:var(--shade-3)}
+.slab{flex-wrap:wrap}
 .slab .grip{width:22px;height:34px;flex:none;display:grid;place-items:center;cursor:grab;touch-action:none;color:var(--ink-faint);border-radius:6px}
 .slab .grip:active{cursor:grabbing}
 .slab .orb{width:38px;height:38px;flex:none;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 6px 14px -6px rgba(46,36,48,.5)}
-.slab .names{flex:1;min-width:0}
+.slab .names{flex:1 1 120px;min-width:0}
 .slab .nm{font-family:'Fraunces',serif;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .slab .sa{font-size:11.5px;color:var(--ink-faint);letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dur{display:flex;align-items:center;gap:2px;background:rgba(255,255,255,.6);border:1px solid var(--glass-line);border-radius:999px;padding:3px}
@@ -174,6 +175,13 @@ input,select{font-family:inherit;color:inherit}
 .close-x{position:absolute;right:20px;top:20px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.6);display:grid;place-items:center}
 
 /* ---------- бібліотека музики ---------- */
+.warn{padding:14px 16px;margin-bottom:14px;border-radius:var(--r-m);font-size:13.5px;line-height:1.6;
+  background:rgba(232,178,90,.14);border:1px solid rgba(232,178,90,.45)}
+.gear{width:40px;height:40px;font-size:16px;align-self:center;flex:none;
+  background:var(--glass);border:1px solid var(--glass-line);box-shadow:var(--shade-2);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border-radius:50%;display:grid;place-items:center}
+.gear:hover{background:#fff}
+#setSheet .slider-row{flex-wrap:wrap}
 .trow{display:flex;align-items:center;gap:12px;padding:11px 14px;margin-bottom:8px;border-radius:var(--r-m);
   background:var(--glass);border:1px solid var(--glass-line);box-shadow:var(--shade-2);
   backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
@@ -185,10 +193,11 @@ input,select{font-family:inherit;color:inherit}
 
 /* ---------- налаштування ---------- */
 .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
-.slider-row label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);width:150px}
+.slider-row label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);width:150px;flex:none}
+.slider-row select{max-width:100%}
 input[type=range]{flex:1;accent-color:var(--rose);height:4px}
 .add-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
-.add-row input[type=text]{flex:1;min-width:220px;padding:11px 16px;border-radius:999px;border:1px solid var(--glass-line);background:rgba(255,255,255,.7);outline:none}
+.add-row{align-items:center}
 .note{font-size:12.5px;color:var(--ink-faint);line-height:1.6;margin-top:12px;max-width:60ch}
 h2.section{font-size:30px;margin:0 0 6px}
 .section-sub{font-size:13px;color:var(--ink-soft);margin-bottom:18px}
@@ -267,8 +276,14 @@ h2.section{font-size:30px;margin:0 0 6px}
 @media (max-width:640px){
   .wrap{padding:24px 16px 100px}
   .sheet-panel{width:100%;top:auto;height:88vh;border-radius:var(--r-xl) var(--r-xl) 0 0;border-left:0}
-  .slab{padding:10px}
-  .slab .grip{width:18px}
+  .slab{padding:10px 8px 10px 10px;gap:10px}
+  .slab .grip{width:16px}
+  .slab .names{flex:1 1 100%;order:1}
+  .slab .orb{order:0}
+  .slab .grip{order:0}
+  .slab .side-toggle{order:2;margin-left:34px}
+  .slab .dur{order:3;margin-left:auto}
+  .slab [data-del]{order:4;width:32px;height:32px}
   .stat{min-width:80px;padding:10px 12px}
 }
 @media (prefers-reduced-motion:reduce){
@@ -305,6 +320,14 @@ body.playing{overflow:hidden}
 /* ---------- решта застосунку на телефоні ---------- */
 @media (max-width:640px){
   .wrap{padding:18px 14px 44px}
+  .editor-top .field{min-width:0!important;width:100%}
+  #seqTitle{min-width:0}
+  .slider-row label{width:auto;flex:1 1 100%}
+  .slider-row{flex-wrap:wrap;gap:8px}
+  .sheet-panel{padding:20px 16px}
+  .year-cells{grid-template-rows:repeat(7,11px);grid-auto-columns:11px;gap:2.5px}
+  .year-cells .cell{width:11px;height:11px;border-radius:3px}
+  .year-months{grid-template-columns:repeat(53,13.5px)}
   .brand h1{font-size:clamp(30px,9.5vw,44px)}
   .brand .sub{font-size:11px;margin-top:5px}
   .masthead{margin-bottom:18px;align-items:center}
@@ -348,6 +371,7 @@ body.playing{overflow:hidden}
     </div>
     <div class="streak">
       <button class="btn btn-ghost" id="installBtn" style="display:none;align-self:center">Встановити</button>
+      <button class="p-btn gear" id="openSettings" title="Налаштування" aria-label="Налаштування">⚙</button>
       <div class="stat"><b id="statStreak" class="mono">0</b><span>днів поспіль</span></div>
       <div class="stat"><b id="statTotal" class="mono">0</b><span>практик</span></div>
       <div class="stat"><b id="statMin" class="mono">0</b><span>хвилин</span></div>
@@ -355,14 +379,14 @@ body.playing{overflow:hidden}
   </header>
 
   <div class="tabs" role="tablist">
-    <button class="tab" role="tab" aria-selected="true" data-view="library">Практики</button>
+    <button class="tab" role="tab" aria-selected="true" data-view="practices">Практики</button>
     <button class="tab" role="tab" aria-selected="false" data-view="editor">Редактор</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="library">Бібліотека</button>
     <button class="tab" role="tab" aria-selected="false" data-view="year">Рік</button>
-    <button class="tab" role="tab" aria-selected="false" data-view="music">Налаштування</button>
   </div>
 
   <!-- LIBRARY -->
-  <section class="view on" id="view-library">
+  <section class="view on" id="view-practices">
     <div class="grid" id="libGrid"></div>
   </section>
 
@@ -411,20 +435,38 @@ body.playing{overflow:hidden}
     <div id="yearDetail" class="note"></div>
   </section>
 
-  <!-- MUSIC -->
-  <section class="view" id="view-music">
-
-    <h2 class="section">Музика</h2>
-    <p class="section-sub" id="vaultNote">Завантажені файли зберігаються в застосунку назавжди й працюють без інтернету.</p>
+  <!-- LIBRARY (музика) -->
+  <section class="view" id="view-library">
+    <h2 class="section">Бібліотека музики</h2>
+    <p class="section-sub" id="vaultNote">Завантажені файли зберігаються всередині застосунку — назавжди й без інтернету.</p>
+    <div id="vaultWarn"></div>
     <div id="trackList"></div>
     <div class="add-row">
-      <button class="btn btn-ghost" id="pickFile">Завантажити файл</button>
+      <button class="btn btn-primary" id="pickFile">Завантажити файл</button>
       <input type="file" id="fileInput" accept="audio/*" multiple hidden>
       <span class="mono" id="vaultSize" style="font-size:12.5px;color:var(--ink-faint)"></span>
     </div>
-    <div class="slider-row" style="margin-top:14px"><label for="volTrack">Гучність музики</label><input type="range" id="volTrack" min="0" max="100"></div>
+    <div class="slider-row" style="margin-top:18px"><label for="volTrack">Гучність музики</label><input type="range" id="volTrack" min="0" max="100"></div>
+  </section>
+</div>
 
-    <h2 class="section" style="margin-top:34px">Сигнали переходу</h2>
+<!-- POSE PICKER -->
+<div class="sheet" id="poseSheet">
+  <div class="sheet-panel">
+    <button class="close-x" id="closeSheet">✕</button>
+    <h2>Бібліотека асан</h2>
+    <input class="search" id="poseSearch" type="text" placeholder="Шукати за назвою…">
+    <div class="cats" id="catList"></div>
+    <div id="poseList"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="sheet" id="setSheet">
+  <div class="sheet-panel">
+    <button class="close-x" id="closeSet">✕</button>
+    <h2>Налаштування</h2>
+    <h2 class="section">Сигнали переходу</h2>
     <p class="section-sub">Тихий сигнал перед кінцем пози і м'який дзвін на переході. Звучать поверх музики.</p>
     <div class="slider-row"><label for="volCue">Гучність</label><input type="range" id="volCue" min="0" max="100"></div>
     <div class="slider-row"><label for="cueLead">Попередження за</label>
@@ -450,17 +492,6 @@ body.playing{overflow:hidden}
       <button class="btn btn-ghost" id="doImport">Відновити з файлу</button>
       <input type="file" id="importInput" accept="application/json" hidden>
     </div>
-  </section>
-</div>
-
-<!-- POSE PICKER -->
-<div class="sheet" id="poseSheet">
-  <div class="sheet-panel">
-    <button class="close-x" id="closeSheet">✕</button>
-    <h2>Бібліотека асан</h2>
-    <input class="search" id="poseSearch" type="text" placeholder="Шукати за назвою…">
-    <div class="cats" id="catList"></div>
-    <div id="poseList"></div>
   </div>
 </div>
 
@@ -650,8 +681,16 @@ const Vault = (()=>{
       t.onabort = ()=>rej(t.error);
     }));
   }
+  let state_ = 'unknown';   // unknown | ok | blocked
   return {
-    ok(){ return !!window.indexedDB; },
+    ok(){ return state_ !== 'blocked'; },
+    status(){ return state_; },
+    async check(){
+      if(!window.indexedDB){ state_='blocked'; return 'blocked'; }
+      try{ await open(); state_='ok'; }
+      catch(e){ state_='blocked'; }
+      return state_;
+    },
     put(rec){ return tx('readwrite', s=>s.put(rec)); },
     get(id){  return tx('readonly',  s=>s.get(id)); },
     del(id){  return tx('readwrite', s=>s.delete(id)); },
@@ -911,12 +950,12 @@ $('#saveSeq').onclick=()=>{
   draft.title = draft.title.trim() || 'Без назви';
   const i = state.sequences.findIndex(s=>s.id===draft.id);
   if(i>=0) state.sequences[i]=JSON.parse(JSON.stringify(draft)); else state.sequences.push(JSON.parse(JSON.stringify(draft)));
-  save(); renderLibrary(); switchView('library'); toast('Збережено');
+  save(); renderLibrary(); switchView('practices'); toast('Збережено');
 };
 $('#playDraft').onclick=()=>{ if(!draft.items.length) return toast('Спочатку додай асани'); Player.start(draft); };
 $('#deleteSeq').onclick=()=>{
   state.sequences = state.sequences.filter(s=>s.id!==draft.id);
-  save(); renderLibrary(); switchView('library'); toast('Видалено');
+  save(); renderLibrary(); switchView('practices'); toast('Видалено');
 };
 
 /* ---- бібліотека асан ---- */
@@ -1027,6 +1066,9 @@ function renderGen(){
     f.appendChild(b);
   });
 }
+$('#openSettings').onclick=()=>$('#setSheet').classList.add('on');
+$('#closeSet').onclick=()=>$('#setSheet').classList.remove('on');
+$('#setSheet').addEventListener('click',e=>{ if(e.target.id==='setSheet') e.currentTarget.classList.remove('on'); });
 $('#closeGen').onclick=()=>$('#genSheet').classList.remove('on');
 $('#genSheet').addEventListener('click',e=>{ if(e.target.id==='genSheet') e.currentTarget.classList.remove('on'); });
 $('#genBuild').onclick=()=>{
@@ -1142,9 +1184,12 @@ function fmtBytes(b){
 let previewing=null;
 async function renderTracks(){
   const box=$('#trackList'); if(!box) return;
-  if(!Vault.ok()){
-    box.innerHTML='<div class="empty">Цей браузер не вміє зберігати файли. На телефоні зазвичай вміє.</div>';
-    $('#pickFile').style.display='none'; return;
+  const warn=$('#vaultWarn');
+  if(Vault.status()==='blocked'){
+    warn.innerHTML='<div class="warn"><b>Сховище недоступне.</b> Найчастіше так буває, коли файл відкрито напряму з диска (адреса починається з <span class="mono">file://</span>) — у цьому режимі браузер забороняє зберігати аудіо. Поклади застосунок на github.io або встанови його на телефон, і завантаження запрацює. Інструкція в README.</div>';
+    $('#pickFile').disabled=true; $('#pickFile').style.opacity=.45;
+  } else {
+    warn.innerHTML=''; $('#pickFile').disabled=false; $('#pickFile').style.opacity=1;
   }
   if(!state.tracks.length){
     box.innerHTML='<div class="empty">Ще нічого не завантажено.</div>';
@@ -1188,17 +1233,22 @@ $('#trackList').addEventListener('click', async e=>{
 $('#pickFile').onclick=()=>$('#fileInput').click();
 $('#fileInput').onchange=async e=>{
   const files=[...e.target.files]; e.target.value='';
+  if(!files.length) return;
+  if(await Vault.check()==='blocked'){ renderTracks(); toast('Сховище недоступне — читай попередження вище'); return; }
+  let ok=0, fail=0;
   for(const f of files){
-    if(f.size > 40*1024*1024){ toast(f.name+' завеликий (понад 40 МБ)'); continue; }
+    if(f.size > 40*1024*1024){ toast(f.name+' завеликий (понад 40 МБ)'); fail++; continue; }
     const id=uid();
     try{
       await Vault.put({id, blob:f, name:f.name});
       state.tracks.push({id, name:f.name.replace(/\.[^.]+$/,''), size:f.size});
-    }catch(err){ toast('Не вдалося зберегти '+f.name); }
+      ok++;
+    }catch(err){ fail++; console.error('Дихання: не збереглось', f.name, err); }
   }
   await Vault.persist();
   save(); renderTracks(); buildTrackSelect();
-  toast(files.length>1?'Файли збережено':'Файл збережено');
+  if(ok) toast(ok===1?'Файл збережено':ok+' файли збережено');
+  if(fail && !ok) toast('Не вдалося зберегти — сховище відмовило');
 };
 $('#volTrack').oninput=e=>{ state.settings.volTrack=e.target.value/100; Audio_.setTrackVol(state.settings.volTrack); save(); };
 
@@ -1331,7 +1381,7 @@ $('#pNextBtn').onclick=()=>Player.next();
 $('#pAdd').onclick=()=>Player.extend();
 $('#pSub').onclick=()=>Player.shorten();
 $('#pExit').onclick=()=>Player.exit();
-$('#doneClose').onclick=()=>{ Player.exit(); switchView('library'); };
+$('#doneClose').onclick=()=>{ Player.exit(); switchView('practices'); };
 document.addEventListener('keydown',e=>{
   if(!$('#player').classList.contains('on')) return;
   if(e.code==='Space'){ e.preventDefault(); Player.toggle(); }
@@ -1345,8 +1395,8 @@ function switchView(v){
   $$('.tab').forEach(t=>t.setAttribute('aria-selected', t.dataset.view===v));
   $$('.view').forEach(s=>s.classList.toggle('on', s.id==='view-'+v));
   if(v==='year') renderYear();
-  if(v==='music'){ renderTracks(); buildTrackSelect(); }
-  if(v!=='music' && previewing){ Audio_.stopTrack(); previewing=null; renderTracks(); }
+  if(v==='library'){ renderTracks(); buildTrackSelect(); }
+  if(v!=='library' && previewing){ Audio_.stopTrack(); previewing=null; renderTracks(); }
   if(v==='editor' && !draft) openEditor(null);
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1391,8 +1441,9 @@ async function boot(){
     items:p.items.map(([poseId,sec,both])=>({poseId,sec,both:!!both}))}));
   if(seqs&&seqs.length) state.sequences=state.sequences.concat(seqs);
   if(trks) state.tracks=trks;
+  await Vault.check();
   // звіряємо список зі справжнім сховищем — раптом файли почистили ззовні
-  if(Vault.ok()){
+  if(Vault.status()==='ok'){
     try{
       const have=new Set((await Vault.all()).map(r=>r.id));
       const lost=state.tracks.filter(t=>!have.has(t.id));
