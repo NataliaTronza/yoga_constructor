@@ -173,16 +173,17 @@ input,select{font-family:inherit;color:inherit}
 .pose-row .cue{font-size:11.5px;color:var(--ink-faint);font-style:italic}
 .close-x{position:absolute;right:20px;top:20px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.6);display:grid;place-items:center}
 
-/* ---------- music ---------- */
-.music-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-bottom:26px}
-.track{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-m);background:var(--glass);
-  border:1px solid var(--glass-line);box-shadow:var(--shade-2);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);text-align:left;width:100%}
-.track:hover{background:var(--glass-strong)}
-.track .wave{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:14px;color:#fff;
-  box-shadow:0 8px 18px -8px rgba(46,36,48,.5)}
-.track .t{font-family:'Fraunces',serif;font-size:16px}
-.track .d{font-size:11.5px;color:var(--ink-faint)}
-.track.playing{border-color:var(--rose)}
+/* ---------- бібліотека музики ---------- */
+.trow{display:flex;align-items:center;gap:12px;padding:11px 14px;margin-bottom:8px;border-radius:var(--r-m);
+  background:var(--glass);border:1px solid var(--glass-line);box-shadow:var(--shade-2);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
+.trow.on{border-color:var(--rose)}
+.tplay{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:14px;color:#fff;
+  background:var(--g-twist);box-shadow:0 8px 18px -8px rgba(46,36,48,.5)}
+.tname{font-family:'Fraunces',serif;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tmeta{font-size:11.5px;color:var(--ink-faint)}
+
+/* ---------- налаштування ---------- */
 .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
 .slider-row label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);width:150px}
 input[type=range]{flex:1;accent-color:var(--rose);height:4px}
@@ -357,7 +358,7 @@ body.playing{overflow:hidden}
     <button class="tab" role="tab" aria-selected="true" data-view="library">Практики</button>
     <button class="tab" role="tab" aria-selected="false" data-view="editor">Редактор</button>
     <button class="tab" role="tab" aria-selected="false" data-view="year">Рік</button>
-    <button class="tab" role="tab" aria-selected="false" data-view="music">Звук</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="music">Налаштування</button>
   </div>
 
   <!-- LIBRARY -->
@@ -373,8 +374,8 @@ body.playing{overflow:hidden}
         <input id="seqTitle" type="text" placeholder="Ранкова практика">
       </div>
       <div class="field">
-        <label for="seqMusic">Фонова музика</label>
-        <select id="seqMusic"></select>
+        <label for="seqTrack">Музика</label>
+        <select id="seqTrack"></select>
       </div>
       <button class="btn btn-ghost" id="addPoseBtn">+ Додати асану</button>
     </div>
@@ -412,20 +413,26 @@ body.playing{overflow:hidden}
 
   <!-- MUSIC -->
   <section class="view" id="view-music">
-    <h2 class="section">Звукове тло</h2>
-    <p class="section-sub">Вбудовані пейзажі генеруються прямо в браузері — файлів не треба, вони не закінчуються і не повторюються.</p>
-    <div class="music-grid" id="ambienceGrid"></div>
 
-    <h2 class="section">Твої треки</h2>
-    <p class="section-sub">Додай посилання на аудіофайл або відкрий файл із пристрою.</p>
-    <div class="music-grid" id="trackGrid"></div>
+    <h2 class="section">Музика</h2>
+    <p class="section-sub" id="vaultNote">Завантажені файли зберігаються в застосунку назавжди й працюють без інтернету.</p>
+    <div id="trackList"></div>
     <div class="add-row">
-      <input type="text" id="trackUrl" placeholder="https://… посилання на mp3">
-      <button class="btn btn-ghost" id="addUrl">Додати посилання</button>
-      <button class="btn btn-ghost" id="pickFile">Відкрити файл</button>
+      <button class="btn btn-ghost" id="pickFile">Завантажити файл</button>
       <input type="file" id="fileInput" accept="audio/*" multiple hidden>
+      <span class="mono" id="vaultSize" style="font-size:12.5px;color:var(--ink-faint)"></span>
     </div>
-    <p class="note">Посилання зберігаються назавжди. Файли з пристрою працюють до перезавантаження сторінки — браузер не дає зберегти сам файл, лише тимчасове посилання на нього.</p>
+    <div class="slider-row" style="margin-top:14px"><label for="volTrack">Гучність музики</label><input type="range" id="volTrack" min="0" max="100"></div>
+
+    <h2 class="section" style="margin-top:34px">Сигнали переходу</h2>
+    <p class="section-sub">Тихий сигнал перед кінцем пози і м'який дзвін на переході. Звучать поверх музики.</p>
+    <div class="slider-row"><label for="volCue">Гучність</label><input type="range" id="volCue" min="0" max="100"></div>
+    <div class="slider-row"><label for="cueLead">Попередження за</label>
+      <select id="cueLead" class="field" style="padding:8px 12px"><option value="0">без попередження</option><option value="3">3 секунди</option><option value="5">5 секунд</option><option value="8">8 секунд</option></select>
+    </div>
+    <div class="slider-row"><label for="vibeOn">Вібрація</label>
+      <select id="vibeOn" class="field" style="padding:8px 12px;flex:none"><option value="1">разом зі звуком</option><option value="0">вимкнена</option></select></div>
+    <button class="btn btn-ghost" id="testCue">Послухати сигнал</button>
 
     <h2 class="section" style="margin-top:34px">Пауза на перехід</h2>
     <p class="section-sub">Окремий крок між асанами: показує наступну позу й дає час перелаштуватись.</p>
@@ -435,16 +442,6 @@ body.playing{overflow:hidden}
         <option value="5">5 секунд</option><option value="8">8 секунд</option>
         <option value="12">12 секунд</option>
       </select></div>
-
-    <h2 class="section" style="margin-top:34px">Гучність і сигнали</h2>
-    <div class="slider-row"><label for="volAmb">Тло</label><input type="range" id="volAmb" min="0" max="100"></div>
-    <div class="slider-row"><label for="volCue">Сигнал зміни</label><input type="range" id="volCue" min="0" max="100"></div>
-    <div class="slider-row"><label for="cueLead">Попередження за</label>
-      <select id="cueLead" class="field" style="padding:8px 12px"><option value="0">без попередження</option><option value="3">3 секунди</option><option value="5">5 секунд</option><option value="8">8 секунд</option></select>
-    </div>
-    <div class="slider-row"><label for="vibeOn">Вібрація</label>
-      <select id="vibeOn" class="field" style="padding:8px 12px;flex:none"><option value="1">разом зі звуком</option><option value="0">вимкнена</option></select></div>
-    <button class="btn btn-ghost" id="testCue">Послухати сигнал</button>
 
     <h2 class="section" style="margin-top:34px">Резервна копія</h2>
     <p class="section-sub">Один файл із твоїми послідовностями, треками й журналом практик — щоб перенести на інший телефон.</p>
@@ -593,25 +590,16 @@ const POSES = [
 const P = Object.fromEntries(POSES.map(p=>[p.id,p]));
 
 
-const AMBIENCES = [
-  {id:'none',  name:'Тиша',        d:'без тла',                  icon:'○'},
-  {id:'pad',   name:'Тепле полотно',d:'м’які акорди, дуже повільні', icon:'≈'},
-  {id:'ocean', name:'Прибій',       d:'хвилі, шум, дихання',      icon:'∿'},
-  {id:'bowls', name:'Чаші',         d:'дрон і рідкі удари',       icon:'◍'},
-  {id:'rain',  name:'Дощ',          d:'рівний, без грому',        icon:'⋮'},
-  {id:'night', name:'Ніч',          d:'низький гул, майже тиша',  icon:'▁'}
-];
-
 const PRESETS = [
- {id:'pre-morning', title:'Ранкове пробудження', music:'pad', preset:true,
+ {id:'pre-morning', title:'Ранкове пробудження', preset:true,
   items:[['catcow',60],['balas',40],['adho',45],['utta',40],['tada',20],['urdhva',20],['anjan',35,true],['vira1',35,true],['trik',35,true],['vriksh',30,true],['utta',40],['sava',90]]},
- {id:'pre-sun', title:'Привітання сонцю', music:'none', preset:true,
+ {id:'pre-sun', title:'Привітання сонцю', preset:true,
   items:[['tada',20],['urdhva',15],['utta',25],['ardhau',10],['plank',20],['chatur',8],['urdhvam',15],['adho',40],['lunge',25,true],['utta',25],['tada',20]]},
- {id:'pre-spine', title:'Спина після роботи', music:'ocean', preset:true,
+ {id:'pre-spine', title:'Спина після роботи', preset:true,
   items:[['sukha',60],['catcow',75],['thread',40,true],['balas',50],['bhuj',30],['salab',25],['setu',45],['supta_t',60,true],['apana',40],['sava',120]]},
- {id:'pre-evening', title:'Вечірнє сповільнення', music:'night', preset:true,
+ {id:'pre-evening', title:'Вечірнє сповільнення', preset:true,
   items:[['balas',75],['catcow',60],['janu',45,true],['paschi',60],['baddha',75],['supta_b',90],['vipar',150],['sava',180]]},
- {id:'pre-quick', title:'П’ять хвилин', music:'bowls', preset:true,
+ {id:'pre-quick', title:'П’ять хвилин', preset:true,
   items:[['sukha',40],['catcow',50],['adho',40],['utta',35],['anjan',30,true],['balas',45],['sava',60]]}
 ];
 
@@ -633,128 +621,88 @@ let state = {
   sequences: [],
   tracks: [],
   log: [],
-  settings: {volAmb:.45, volCue:.5, cueLead:3, vibe:true, gap:5}
+  settings: {volCue:.5, volTrack:.4, cueLead:3, vibe:true, gap:5}
 };
 let draft = null;        // послідовність у редакторі
 let sheetCat = 'all';
 
-/* ============ 3. АУДІО ============ */
+/* ============ 2b. СХОВИЩЕ АУДІОФАЙЛІВ (IndexedDB) ============ */
+const Vault = (()=>{
+  const DB='dyhannia-audio', ST='tracks';
+  let dbp=null;
+  function open(){
+    if(dbp) return dbp;
+    dbp = new Promise((res,rej)=>{
+      if(!window.indexedDB) return rej(new Error('no idb'));
+      const r = indexedDB.open(DB, 1);
+      r.onupgradeneeded = ()=>{ const d=r.result; if(!d.objectStoreNames.contains(ST)) d.createObjectStore(ST,{keyPath:'id'}); };
+      r.onsuccess = ()=>res(r.result);
+      r.onerror  = ()=>rej(r.error);
+    });
+    return dbp;
+  }
+  function tx(mode, fn){
+    return open().then(db=>new Promise((res,rej)=>{
+      const t = db.transaction(ST, mode), s = t.objectStore(ST);
+      const req = fn(s);
+      t.oncomplete = ()=>res(req && req.result);
+      t.onerror = ()=>rej(t.error);
+      t.onabort = ()=>rej(t.error);
+    }));
+  }
+  return {
+    ok(){ return !!window.indexedDB; },
+    put(rec){ return tx('readwrite', s=>s.put(rec)); },
+    get(id){  return tx('readonly',  s=>s.get(id)); },
+    del(id){  return tx('readwrite', s=>s.delete(id)); },
+    all(){    return tx('readonly',  s=>s.getAll()); },
+    async size(){
+      if(navigator.storage && navigator.storage.estimate){
+        try{ const e = await navigator.storage.estimate(); return e.usage||0; }catch(err){}
+      }
+      return null;
+    },
+    async persist(){
+      if(navigator.storage && navigator.storage.persist){
+        try{ return await navigator.storage.persist(); }catch(err){}
+      }
+      return false;
+    }
+  };
+})();
+
+/* ============ 3. ЗВУКОВІ СИГНАЛИ ============ */
 const Audio_ = (()=>{
-  let ctx=null, ambGain=null, cueGain=null, nodes=[], current='none', el=null, timerId=null, bowlStrike=null;
+  let ctx=null, cueGain=null, el=null, elUrl=null;
   function ensure(){
     if(ctx) return ctx;
     ctx = new (window.AudioContext||window.webkitAudioContext)();
-    ambGain = ctx.createGain(); ambGain.gain.value = state.settings.volAmb; ambGain.connect(ctx.destination);
     cueGain = ctx.createGain(); cueGain.gain.value = state.settings.volCue; cueGain.connect(ctx.destination);
     return ctx;
   }
-  function noiseBuffer(sec=4){
-    const b = ctx.createBuffer(1, ctx.sampleRate*sec, ctx.sampleRate);
-    const d = b.getChannelData(0);
-    for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
-    return b;
-  }
-  function lfo(target, freq, min, max){
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.frequency.value = freq; g.gain.value = (max-min)/2;
-    target.value = (max+min)/2;
-    o.connect(g); g.connect(target); o.start();
-    nodes.push(o,g);
-  }
-  function stopAll(){
-    nodes.forEach(n=>{ try{ n.stop&&n.stop(); n.disconnect&&n.disconnect(); }catch(e){} });
-    nodes=[];
-    if(timerId){ clearInterval(timerId); timerId=null; }
-    bowlStrike=null;
-    if(el){ el.pause(); el = null; }
-  }
-  function build(id){
-    ensure(); stopAll(); current = id;
-    if(id==='none') return;
-    if(id.startsWith('track:')){
-      const t = state.tracks.find(x=>x.id===id.slice(6));
-      if(!t) return;
-      el = new Audio(t.src); el.loop = true; el.volume = state.settings.volAmb;
-      el.play().catch(()=>toast('Браузер не пускає цей трек — спробуй інше посилання або файл'));
-      return;
-    }
-    if(id==='pad'){
-      const freqs=[130.81,196,329.63];
-      freqs.forEach((f,i)=>{
-        const o=ctx.createOscillator(), g=ctx.createGain(), f2=ctx.createBiquadFilter();
-        o.type = i===2?'sine':'triangle'; o.frequency.value = f*(1+(i-1)*0.0015);
-        f2.type='lowpass'; f2.frequency.value=700;
-        g.gain.value=0; g.gain.linearRampToValueAtTime(.09/(i+1), ctx.currentTime+6);
-        o.connect(f2); f2.connect(g); g.connect(ambGain); o.start();
-        lfo(g.gain, .03+i*.01, .02, .10/(i+1));
-        nodes.push(o,g,f2);
-      });
-    }
-    if(id==='ocean'){
-      const s=ctx.createBufferSource(); s.buffer=noiseBuffer(6); s.loop=true;
-      const f=ctx.createBiquadFilter(); f.type='lowpass'; f.Q.value=1.2;
-      const g=ctx.createGain(); g.gain.value=.0;
-      s.connect(f); f.connect(g); g.connect(ambGain); s.start();
-      lfo(f.frequency,.055,180,900); lfo(g.gain,.055,.03,.34);
-      nodes.push(s,f,g);
-    }
-    if(id==='rain'){
-      const s=ctx.createBufferSource(); s.buffer=noiseBuffer(6); s.loop=true;
-      const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=900;
-      const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=6000;
-      const g=ctx.createGain(); g.gain.value=.16;
-      s.connect(hp); hp.connect(lp); lp.connect(g); g.connect(ambGain); s.start();
-      lfo(g.gain,.7,.12,.2);
-      nodes.push(s,hp,lp,g);
-    }
-    if(id==='night'){
-      [55,82.4].forEach((f,i)=>{
-        const o=ctx.createOscillator(), g=ctx.createGain(), lp=ctx.createBiquadFilter();
-        o.type='sine'; o.frequency.value=f; lp.type='lowpass'; lp.frequency.value=200;
-        g.gain.value=0; g.gain.linearRampToValueAtTime(.16-i*.06, ctx.currentTime+8);
-        o.connect(lp); lp.connect(g); g.connect(ambGain); o.start();
-        lfo(g.gain,.02+i*.01,.04,.16-i*.06);
-        nodes.push(o,g,lp);
-      });
-    }
-    if(id==='bowls'){
-      const o=ctx.createOscillator(), g=ctx.createGain(), lp=ctx.createBiquadFilter();
-      o.type='sine'; o.frequency.value=98; lp.type='lowpass'; lp.frequency.value=300;
-      g.gain.value=0; g.gain.linearRampToValueAtTime(.1, ctx.currentTime+6);
-      o.connect(lp); lp.connect(g); g.connect(ambGain); o.start();
-      nodes.push(o,g,lp);
-      const strike=()=>{
-        const t=ctx.currentTime;
-        [261.6,392,523.25].forEach((f,i)=>{
-          const oo=ctx.createOscillator(), gg=ctx.createGain();
-          oo.type='sine'; oo.frequency.value=f;
-          gg.gain.setValueAtTime(0,t); gg.gain.linearRampToValueAtTime(.10/(i+1.4),t+.04);
-          gg.gain.exponentialRampToValueAtTime(.0001,t+7);
-          oo.connect(gg); gg.connect(ambGain); oo.start(t); oo.stop(t+7.2);
-        });
-      };
-      bowlStrike = strike;
-      setTimeout(strike,2000);
-      timerId = setInterval(strike, 19000);
-    }
-  }
   return {
-    play(id){ build(id); if(ctx&&ctx.state==='suspended') ctx.resume(); },
-    stop(){ stopAll(); current='none'; },
-    current(){ return current; },
-    setAmbVol(v){ if(ambGain) ambGain.gain.value=v; if(el) el.volume=v; },
     setCueVol(v){ if(cueGain) cueGain.gain.value=v; },
-    resume(){ if(ctx&&ctx.state==='suspended') ctx.resume(); },
-    pause(){
-      if(timerId){ clearInterval(timerId); timerId=null; }
-      if(el) el.pause();
-      if(ctx && ctx.state==='running') ctx.suspend();
+    setTrackVol(v){ if(el) el.volume=v; },
+    resume(){ if(ctx && ctx.state==='suspended') ctx.resume(); },
+    async playTrack(id){
+      this.stopTrack();
+      if(!id) return;
+      try{
+        const rec = await Vault.get(id);
+        if(!rec || !rec.blob) return;
+        elUrl = URL.createObjectURL(rec.blob);
+        el = new Audio(elUrl);
+        el.loop = true; el.volume = state.settings.volTrack;
+        await el.play();
+      }catch(e){ toast('Не вдалося відтворити цей файл'); this.stopTrack(); }
     },
-    unpause(){
-      if(ctx && ctx.state==='suspended') ctx.resume();
-      if(el) el.play().catch(()=>{});
-      if(current==='bowls' && bowlStrike && !timerId) timerId = setInterval(bowlStrike, 19000);
+    pauseTrack(){ if(el) el.pause(); },
+    resumeTrack(){ if(el) el.play().catch(()=>{}); },
+    stopTrack(){
+      if(el){ el.pause(); el.src=''; el=null; }
+      if(elUrl){ URL.revokeObjectURL(elUrl); elUrl=null; }
     },
+    playing(){ return !!el && !el.paused; },
     tick(){ // тихий короткий сигнал перед зміною
       ensure(); const t=ctx.currentTime;
       const o=ctx.createOscillator(), g=ctx.createGain();
@@ -763,7 +711,7 @@ const Audio_ = (()=>{
       g.gain.exponentialRampToValueAtTime(.0001,t+.5);
       o.connect(g); g.connect(cueGain); o.start(t); o.stop(t+.55);
     },
-    bell(){ // м’який дзвін на переході
+    bell(){ // м'який дзвін на переході
       ensure(); const t=ctx.currentTime;
       [528,792,1056].forEach((f,i)=>{
         const o=ctx.createOscillator(), g=ctx.createGain();
@@ -786,12 +734,12 @@ function fmt(sec){ const m=Math.floor(sec/60), s=sec%60; return m+':'+String(s).
 function human(sec){ const m=Math.round(sec/60); return m<1 ? sec+' с' : m+' хв'; }
 let toastT;
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2600); }
-function seqSeconds(seq){ return seq.items.reduce((a,i)=>a + i.sec*((i.both&&P[i.poseId].bi)?2:1), 0); }
-function musicName(id){
-  if(!id||id==='none') return 'Тиша';
-  if(id.startsWith('track:')){ const t=state.tracks.find(x=>x.id===id.slice(6)); return t?t.name:'Трек'; }
-  const a=AMBIENCES.find(a=>a.id===id); return a?a.name:'Тиша';
+function trackName(id){
+  if(!id) return '';
+  const t=state.tracks.find(x=>x.id===id);
+  return t ? ' · ♪ '+t.name : '';
 }
+function seqSeconds(seq){ return seq.items.reduce((a,i)=>a + i.sec*((i.both&&P[i.poseId].bi)?2:1), 0); }
 
 /* ============ 5. БІБЛІОТЕКА ============ */
 function renderLibrary(){
@@ -802,7 +750,7 @@ function renderLibrary(){
     card.innerHTML=`
       <div class="aura" style="background:${CAT[P[seq.items[0].poseId].cat].g}"></div>
       <h3>${seq.title}</h3>
-      <div class="meta mono">${human(seqSeconds(seq))} · ${seq.items.length} асан · ${musicName(seq.music)}</div>
+      <div class="meta mono">${human(seqSeconds(seq))} · ${seq.items.length} асан${trackName(seq.track)}</div>
       <div class="chips">${cats.map(c=>`<span class="chip">${CAT[c].ua}</span>`).join('')}</div>
       <div class="card-actions">
         <button class="btn btn-primary" data-play="${seq.id}">Почати</button>
@@ -856,21 +804,16 @@ function openEditor(seq){
     draft.id = uid(); draft.preset = false; draft.title = seq.title + ' — моя версія';
     toast('Готові практики не змінюються — відкрито копію');
   } else {
-    draft = seq ? JSON.parse(JSON.stringify(seq)) : {id:uid(), title:'', music:'pad', items:[], preset:false};
+    draft = seq ? JSON.parse(JSON.stringify(seq)) : {id:uid(), title:'', items:[], preset:false};
   }
   $('#seqTitle').value = draft.title;
-  buildMusicSelect();
-  $('#seqMusic').value = draft.music || 'none';
+  buildTrackSelect();
+  $('#seqTrack').value = draft.track || '';
   $('#deleteSeq').style.display = state.sequences.some(s=>s.id===draft.id) ? '' : 'none';
   renderRibbon();
   switchView('editor');
 }
 
-function buildMusicSelect(){
-  const sel=$('#seqMusic'); sel.innerHTML='';
-  AMBIENCES.forEach(a=>sel.appendChild(new Option(a.name,a.id)));
-  state.tracks.forEach(t=>sel.appendChild(new Option(t.name,'track:'+t.id)));
-}
 
 function renderRibbon(){
   const r=$('#ribbon'); r.innerHTML='';
@@ -950,7 +893,15 @@ function attachDrag(){
 }
 
 $('#seqTitle').addEventListener('input',e=>draft.title=e.target.value);
-$('#seqMusic').addEventListener('change',e=>draft.music=e.target.value);
+$('#seqTrack').addEventListener('change',e=>draft.track=e.target.value||null);
+function buildTrackSelect(){
+  const sel=$('#seqTrack'); if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML='';
+  sel.appendChild(new Option('без музики',''));
+  state.tracks.forEach(t=>sel.appendChild(new Option(t.name, t.id)));
+  sel.value = cur;
+}
 $('#addPoseBtn').onclick=()=>{ $('#poseSheet').classList.add('on'); renderPoseList(); $('#poseSearch').focus(); };
 $('#closeSheet').onclick=()=>$('#poseSheet').classList.remove('on');
 $('#poseSheet').addEventListener('click',e=>{ if(e.target.id==='poseSheet') e.currentTarget.classList.remove('on'); });
@@ -1006,31 +957,31 @@ $('#poseSearch').addEventListener('input',renderPoseList);
 
 /* ============ 6b. ГЕНЕРАТОР ============ */
 const FOCUS = {
-  full:    {name:'Все тіло',  music:'pad',
+  full:    {name:'Все тіло', 
             warm:['catcow','balas','adho','utta'],
             main:['tada','urdhva','utka','anjan','vira1','vira2','trik','parsva','vriksh','plank','bhuj','setu'],
             cool:['janu','paschi','supta_t','apana']},
-  back:    {name:'Спина',     music:'ocean',
+  back:    {name:'Спина',    
             warm:['catcow','balas','thread'],
             main:['bhuj','salab','setu','ustra','ardham','adho','anjan'],
             cool:['supta_t','apana','janu','paschi']},
-  morning: {name:'Ранок',     music:'pad',
+  morning: {name:'Ранок',    
             warm:['catcow','balas','adho'],
             main:['tada','urdhva','utta','lunge','vira1','vira2','trik','vriksh','utka'],
             cool:['janu','paschi','setu']},
-  evening: {name:'Вечір',     music:'night',
+  evening: {name:'Вечір',    
             warm:['balas','catcow','sukha'],
             main:['janu','paschi','baddha','upav','gomu','thread','supta_b'],
             cool:['supta_t','vipar','apana']},
-  strength:{name:'Сила',      music:'none',
+  strength:{name:'Сила',     
             warm:['catcow','adho'],
             main:['plank','chatur','utka','vira2','vira3','navas','salab','dhanu','lunge'],
             cool:['balas','paschi','supta_t']},
-  stretch: {name:'Розтяжка',  music:'bowls',
+  stretch: {name:'Розтяжка', 
             warm:['catcow','balas','adho'],
             main:['anjan','prasar','parsva','janu','upav','baddha','gomu','paschi'],
             cool:['supta_t','happy','supta_b']},
-  balance: {name:'Баланс',    music:'pad',
+  balance: {name:'Баланс',   
             warm:['catcow','tada','adho'],
             main:['vriksh','vira3','garuda','natar','utka','trik'],
             cool:['danda','paschi','supta_t']}
@@ -1058,7 +1009,7 @@ function generate(minutes, key){
   const body=total-sava;
   const items=[...buildPhase(F.warm, body*0.25), ...buildPhase(F.main, body*0.5), ...buildPhase(F.cool, body*0.25)];
   items.push({poseId:'sava', sec:sava, both:false});
-  return {id:uid(), title:F.name+' · '+minutes+' хв', music:F.music, items, preset:false};
+  return {id:uid(), title:F.name+' · '+minutes+' хв', items, preset:false};
 }
 function renderGen(){
   const t=$('#genTime'); t.innerHTML='';
@@ -1082,7 +1033,6 @@ $('#genBuild').onclick=()=>{
   $('#genSheet').classList.remove('on');
   draft = generate(genMin, genFocus);
   $('#seqTitle').value=draft.title;
-  buildMusicSelect(); $('#seqMusic').value=draft.music;
   $('#deleteSeq').style.display='none';
   renderRibbon(); switchView('editor');
   toast('Зібрано — правь як хочеш і збережи');
@@ -1152,47 +1102,6 @@ $('#yearPrev').onclick=()=>{ yearShown--; renderYear(); };
 $('#yearNext').onclick=()=>{ yearShown++; renderYear(); };
 
 /* ============ 7. МУЗИКА ============ */
-function renderMusic(){
-  const g=$('#ambienceGrid'); g.innerHTML='';
-  AMBIENCES.forEach(a=>{
-    const b=document.createElement('button'); b.className='track'+(Audio_.current()===a.id?' playing':'');
-    b.innerHTML=`<div class="wave" style="background:var(--g-${a.id==='none'?'rest':'flow'})">${a.icon}</div>
-      <div><div class="t">${a.name}</div><div class="d">${a.d}</div></div>`;
-    b.onclick=()=>{ Audio_.current()===a.id ? Audio_.stop() : Audio_.play(a.id); renderMusic(); };
-    g.appendChild(b);
-  });
-  const tg=$('#trackGrid'); tg.innerHTML='';
-  if(!state.tracks.length) tg.innerHTML='<div class="empty">Ще нічого не додано.</div>';
-  state.tracks.forEach(t=>{
-    const b=document.createElement('div'); b.className='track'+(Audio_.current()==='track:'+t.id?' playing':'');
-    b.innerHTML=`<div class="wave" style="background:var(--g-twist)">♪</div>
-      <div style="flex:1;min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</div>
-      <div class="d">${t.session?'до перезавантаження':'збережено'}</div></div>
-      <button class="btn btn-ghost btn-icon" data-t="${t.id}">✕</button>`;
-    b.onclick=e=>{
-      if(e.target.dataset.t){
-        state.tracks=state.tracks.filter(x=>x.id!==t.id); save(); buildMusicSelect(); renderMusic(); return;
-      }
-      Audio_.current()==='track:'+t.id ? Audio_.stop() : Audio_.play('track:'+t.id);
-      renderMusic();
-    };
-    tg.appendChild(b);
-  });
-}
-$('#addUrl').onclick=()=>{
-  const u=$('#trackUrl').value.trim(); if(!u) return;
-  const name=decodeURIComponent(u.split('/').pop().split('?')[0]) || 'Трек';
-  state.tracks.push({id:uid(), name, src:u, session:false});
-  $('#trackUrl').value=''; save(); buildMusicSelect(); renderMusic(); toast('Трек додано');
-};
-$('#pickFile').onclick=()=>$('#fileInput').click();
-$('#fileInput').onchange=e=>{
-  [...e.target.files].forEach(f=>{
-    state.tracks.push({id:uid(), name:f.name.replace(/\.[^.]+$/,''), src:URL.createObjectURL(f), session:true});
-  });
-  buildMusicSelect(); renderMusic(); toast('Додано на цю сесію');
-};
-$('#volAmb').oninput=e=>{ state.settings.volAmb=e.target.value/100; Audio_.setAmbVol(state.settings.volAmb); save(); };
 $('#volCue').oninput=e=>{ state.settings.volCue=e.target.value/100; Audio_.setCueVol(state.settings.volCue); save(); };
 $('#cueLead').onchange=e=>{ state.settings.cueLead=parseInt(e.target.value,10); save(); };
 $('#testCue').onclick=()=>{ Audio_.resume(); Audio_.tick(); buzz(40); setTimeout(()=>{Audio_.bell(); buzz([70,90,70]);},900); };
@@ -1200,8 +1109,7 @@ $('#gapSec').onchange=e=>{ state.settings.gap=parseInt(e.target.value,10); save(
 $('#vibeOn').onchange=e=>{ state.settings.vibe = e.target.value==='1'; save(); if(state.settings.vibe) buzz(40); };
 $('#doExport').onclick=()=>{
   const data={v:1, saved:new Date().toISOString(),
-    sequences:state.sequences.filter(s=>!s.preset), tracks:state.tracks.filter(t=>!t.session),
-    log:state.log, settings:state.settings};
+    sequences:state.sequences.filter(s=>!s.preset), log:state.log, settings:state.settings};
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:'application/json'}));
   a.download='dyhannia-'+isoLocal(new Date())+'.json'; a.click();
@@ -1217,14 +1125,82 @@ $('#importInput').onchange=e=>{
       if(!d.sequences) throw 0;
       const mine=new Set(state.sequences.map(s=>s.id));
       d.sequences.forEach(s=>{ if(!mine.has(s.id)) state.sequences.push(s); });
-      (d.tracks||[]).forEach(t=>{ if(!state.tracks.some(x=>x.id===t.id)) state.tracks.push(t); });
       if(d.log) d.log.forEach(l=>{ if(!state.log.some(x=>x.date===l.date&&x.title===l.title&&x.sec===l.sec)) state.log.push(l); });
-      save(); renderLibrary(); buildMusicSelect(); renderMusic();
+      save(); renderLibrary();
       toast('Відновлено: '+d.sequences.length+' послідовностей');
     }catch(err){ toast('Це не файл «Дихання» — перевір, який обрала'); }
   };
   r.readAsText(f);
 };
+
+/* ============ 7b. БІБЛІОТЕКА МУЗИКИ ============ */
+function fmtBytes(b){
+  if(b==null) return '';
+  if(b<1024*1024) return Math.round(b/1024)+' КБ';
+  return (b/1048576).toFixed(1)+' МБ';
+}
+let previewing=null;
+async function renderTracks(){
+  const box=$('#trackList'); if(!box) return;
+  if(!Vault.ok()){
+    box.innerHTML='<div class="empty">Цей браузер не вміє зберігати файли. На телефоні зазвичай вміє.</div>';
+    $('#pickFile').style.display='none'; return;
+  }
+  if(!state.tracks.length){
+    box.innerHTML='<div class="empty">Ще нічого не завантажено.</div>';
+  } else {
+    box.innerHTML='';
+    state.tracks.forEach(t=>{
+      const used=state.sequences.filter(s=>s.track===t.id).length;
+      const row=document.createElement('div'); row.className='trow'+(previewing===t.id?' on':'');
+      row.innerHTML=`
+        <button class="tplay" data-play="${t.id}">${previewing===t.id?'❚❚':'▶'}</button>
+        <div style="flex:1;min-width:0">
+          <div class="tname">${t.name}</div>
+          <div class="tmeta mono">${fmtBytes(t.size)}${used?' · у '+used+' практиц'+(used===1?'і':'ях'):''}</div>
+        </div>
+        <button class="btn btn-ghost btn-icon" data-del="${t.id}" title="Видалити">✕</button>`;
+      box.appendChild(row);
+    });
+  }
+  const s=await Vault.size();
+  $('#vaultSize').textContent = s ? 'зайнято '+fmtBytes(s) : '';
+}
+$('#trackList').addEventListener('click', async e=>{
+  const pl=e.target.closest('[data-play]'), dl=e.target.closest('[data-del]');
+  if(pl){
+    const id=pl.dataset.play;
+    if(previewing===id){ Audio_.stopTrack(); previewing=null; }
+    else { previewing=id; await Audio_.playTrack(id); }
+    renderTracks();
+  }
+  if(dl){
+    const id=dl.dataset.del;
+    const used=state.sequences.filter(s=>s.track===id);
+    if(previewing===id){ Audio_.stopTrack(); previewing=null; }
+    await Vault.del(id);
+    state.tracks=state.tracks.filter(t=>t.id!==id);
+    used.forEach(s=>s.track=null);
+    save(); renderTracks(); buildTrackSelect(); renderLibrary();
+    toast(used.length?'Видалено — практики лишились без музики':'Видалено');
+  }
+});
+$('#pickFile').onclick=()=>$('#fileInput').click();
+$('#fileInput').onchange=async e=>{
+  const files=[...e.target.files]; e.target.value='';
+  for(const f of files){
+    if(f.size > 40*1024*1024){ toast(f.name+' завеликий (понад 40 МБ)'); continue; }
+    const id=uid();
+    try{
+      await Vault.put({id, blob:f, name:f.name});
+      state.tracks.push({id, name:f.name.replace(/\.[^.]+$/,''), size:f.size});
+    }catch(err){ toast('Не вдалося зберегти '+f.name); }
+  }
+  await Vault.persist();
+  save(); renderTracks(); buildTrackSelect();
+  toast(files.length>1?'Файли збережено':'Файл збережено');
+};
+$('#volTrack').oninput=e=>{ state.settings.volTrack=e.target.value/100; Audio_.setTrackVol(state.settings.volTrack); save(); };
 
 /* ============ 8. ПЛЕЄР ============ */
 const Player = (()=>{
@@ -1307,7 +1283,7 @@ const Player = (()=>{
     save(); renderStats();
     $('#doneTally').textContent = seq.title+' · '+human(total)+' · '+steps.length+' асан';
     $('#doneScreen').classList.add('on');
-    setTimeout(()=>Audio_.stop(),4000);
+    setTimeout(()=>Audio_.stopTrack(), 6000);
   }
   return {
     start(s){
@@ -1318,7 +1294,9 @@ const Player = (()=>{
       $('#player').classList.add('on'); document.body.classList.add('playing');
       $('#breath').classList.remove('paused');
       paused=false; $('#pPlay').textContent='❚❚';
-      Audio_.resume(); Audio_.play(s.music||'none');
+      Audio_.resume();
+      if(previewing){ Audio_.stopTrack(); previewing=null; }
+      if(s.track) Audio_.playTrack(s.track);
       go(0);
       if(raf) cancelAnimationFrame(raf);
       raf=requestAnimationFrame(loop);
@@ -1326,7 +1304,7 @@ const Player = (()=>{
     },
     toggle(){
       paused=!paused; last=0;
-      paused ? Audio_.pause() : Audio_.unpause();
+      paused ? Audio_.pauseTrack() : Audio_.resumeTrack();
       $('#pPlay').textContent=paused?'▶':'❚❚';
       $('#breath').classList.toggle('paused',paused);
     },
@@ -1341,7 +1319,7 @@ const Player = (()=>{
       $('#breath').classList.remove('bloom'); $('#pNext').classList.remove('soon');
     },
     exit(){
-      cancelAnimationFrame(raf); raf=null; Audio_.stop();
+      cancelAnimationFrame(raf); raf=null; Audio_.stopTrack();
       $('#player').classList.remove('on'); document.body.classList.remove('playing');
       if(wake){ try{wake.release();}catch(e){} wake=null; }
     }
@@ -1366,8 +1344,9 @@ document.addEventListener('keydown',e=>{
 function switchView(v){
   $$('.tab').forEach(t=>t.setAttribute('aria-selected', t.dataset.view===v));
   $$('.view').forEach(s=>s.classList.toggle('on', s.id==='view-'+v));
-  if(v==='music') renderMusic();
   if(v==='year') renderYear();
+  if(v==='music'){ renderTracks(); buildTrackSelect(); }
+  if(v!=='music' && previewing){ Audio_.stopTrack(); previewing=null; renderTracks(); }
   if(v==='editor' && !draft) openEditor(null);
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1400,28 +1379,40 @@ if(!reduce){
 
 async function save(){
   await store.set('yoga:sequences', state.sequences.filter(s=>!s.preset));
-  await store.set('yoga:tracks', state.tracks.filter(t=>!t.session));
+  await store.set('yoga:tracks', state.tracks);
   await store.set('yoga:log', state.log);
   await store.set('yoga:settings', state.settings);
 }
 async function boot(){
-  const [seqs,tracks,log,settings] = await Promise.all([
+  const [seqs,trks,log,settings] = await Promise.all([
     store.get('yoga:sequences'), store.get('yoga:tracks'), store.get('yoga:log'), store.get('yoga:settings')
   ]);
-  state.sequences = PRESETS.map(p=>({id:p.id,title:p.title,music:p.music,preset:true,
+  state.sequences = PRESETS.map(p=>({id:p.id,title:p.title,preset:true,
     items:p.items.map(([poseId,sec,both])=>({poseId,sec,both:!!both}))}));
   if(seqs&&seqs.length) state.sequences=state.sequences.concat(seqs);
-  if(tracks) state.tracks=tracks;
+  if(trks) state.tracks=trks;
+  // звіряємо список зі справжнім сховищем — раптом файли почистили ззовні
+  if(Vault.ok()){
+    try{
+      const have=new Set((await Vault.all()).map(r=>r.id));
+      const lost=state.tracks.filter(t=>!have.has(t.id));
+      if(lost.length){
+        state.tracks=state.tracks.filter(t=>have.has(t.id));
+        state.sequences.forEach(s=>{ if(s.track && !have.has(s.track)) s.track=null; });
+        save();
+      }
+    }catch(e){}
+  }
   if(log) state.log=log;
   if(settings) state.settings=Object.assign(state.settings,settings);
 
-  $('#volAmb').value=state.settings.volAmb*100;
   $('#volCue').value=state.settings.volCue*100;
+  $('#volTrack').value=state.settings.volTrack*100;
   $('#cueLead').value=state.settings.cueLead;
   $('#vibeOn').value=state.settings.vibe?'1':'0';
   $('#gapSec').value=state.settings.gap;
 
-  renderCats(); renderLibrary(); buildMusicSelect(); renderMusic();
+  renderCats(); renderLibrary(); renderTracks();
 }
 boot();
 
