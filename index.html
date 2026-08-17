@@ -224,6 +224,31 @@ input,select{font-family:inherit;color:inherit}
 .plnone{font-size:13px;color:var(--ink-faint);padding:2px 0}
 #seqTracks select{border:0;background:none;font-size:13px;color:var(--ink-soft);outline:none;padding:2px 0;max-width:100%}
 
+/* ---------- своя асана ---------- */
+.pose-line{display:flex;align-items:center;gap:4px}
+.pose-line .pose-row{flex:1;min-width:0}
+.pose-edit{flex:none;opacity:.5}
+.pose-edit:hover{opacity:1}
+.ownmark{font-family:'Karla',sans-serif;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-faint);border:1px solid var(--glass-line);background:rgba(255,255,255,.6);
+  border-radius:999px;padding:2px 7px;margin-left:8px;vertical-align:middle}
+.tagrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:5px;
+  font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
+.tagrow .tag{width:9px;height:9px;border-radius:3px;display:inline-block;margin-left:7px}
+.tagrow .tag:first-child{margin-left:0}
+.pform{padding:4px 0 8px}
+.pform h3{font-family:'Fraunces',serif;font-size:22px;font-weight:400;margin:0 0 14px}
+.pfl{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-faint);margin:14px 0 6px}
+.pfl .opt{text-transform:none;letter-spacing:0;font-size:11.5px;opacity:.75}
+.pfrow{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:16px}
+.pfrow input[type=number]{width:84px;padding:9px 12px;border-radius:999px;
+  border:1px solid var(--glass-line);background:rgba(255,255,255,.7);outline:none;text-align:center}
+.pfcheck{display:flex;align-items:center;gap:7px;margin:0;cursor:pointer}
+.pfcheck input{width:17px;height:17px;accent-color:var(--rose)}
+.pfbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.pfbtns .btn{flex:1 1 auto}
+
 /* ---------- бібліотека музики ---------- */
 .warn{padding:14px 16px;margin-bottom:14px;border-radius:var(--r-m);font-size:13.5px;line-height:1.6;
   background:rgba(232,178,90,.14);border:1px solid rgba(232,178,90,.45)}
@@ -517,7 +542,30 @@ body.playing{overflow:hidden}
     <h2>Бібліотека асан</h2>
     <input class="search" id="poseSearch" type="text" placeholder="Шукати за назвою…">
     <div class="cats" id="catList"></div>
+    <button class="btn btn-ghost" id="newPose" style="width:100%;margin-bottom:14px">+ Своя асана</button>
     <div id="poseList"></div>
+
+    <div id="poseForm" class="pform" hidden>
+      <h3 id="pfTitle">Своя асана</h3>
+      <label class="pfl" for="pfUa">Назва</label>
+      <input class="search" id="pfUa" type="text" placeholder="Наприклад: Розкриття плечей">
+      <label class="pfl" for="pfSa">Санскрит або друга назва <span class="opt">необов'язково</span></label>
+      <input class="search" id="pfSa" type="text">
+      <label class="pfl" for="pfCue">Підказка собі <span class="opt">необов'язково</span></label>
+      <input class="search" id="pfCue" type="text" placeholder="На що звернути увагу">
+      <label class="pfl">Ярлички <span class="opt">можна кілька</span></label>
+      <div class="cats" id="pfCats"></div>
+      <div class="pfrow">
+        <label class="pfl" for="pfSec" style="margin:0">Тривалість, с</label>
+        <input class="mono" id="pfSec" type="number" min="5" max="900" step="5" value="40">
+        <label class="pfl pfcheck"><input type="checkbox" id="pfBi"> дві сторони</label>
+      </div>
+      <div class="pfbtns">
+        <button class="btn btn-primary" id="pfSave">Зберегти</button>
+        <button class="btn btn-ghost" id="pfCancel">Скасувати</button>
+        <button class="btn btn-ghost" id="pfDelete" style="color:#B4636F">Видалити</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -679,7 +727,18 @@ const POSES = [
  {id:'vipar',   sa:'Viparita Karani',       ua:'Ноги на стіні',          cat:'rest',     d:120,cue:'Legs up, arms wide, let the breath slow.'},
  {id:'sava',    sa:'Savasana',              ua:'Шавасана',               cat:'rest',     d:180,cue:'Nothing to do now. Let the floor hold you.'}
 ];
-const P = Object.fromEntries(POSES.map(p=>[p.id,p]));
+// P будується з вбудованих + власних асан і оновлюється при кожній зміні
+let P = Object.fromEntries(POSES.map(p=>[p.id,p]));
+function allPoses(){ return POSES.concat(state.poses||[]); }
+function rebuildP(){ P = Object.fromEntries(allPoses().map(p=>[p.id,p])); }
+// у вбудованих асан одна категорія, у власних — список; читаємо однаково
+function catsOf(p){
+  if(!p) return ['rest'];
+  const l = p.cats ? p.cats : (p.cat ? [p.cat] : []);
+  const ok = l.filter(c=>CAT[c]);
+  return ok.length ? ok : ['rest'];
+}
+function mainCat(p){ return catsOf(p)[0]; }
 
 
 const PRESETS = [
@@ -711,6 +770,7 @@ const store = {
 
 let state = {
   sequences: [],
+  poses: [],
   tracks: [],
   log: [],
   settings: {volCue:.5, volTrack:.4, cueLead:3, vibe:true, gap:5}
@@ -933,16 +993,26 @@ function trackName(seq){
   if(l.length===1){ const t=state.tracks.find(x=>x.id===l[0]); return ' · ♪ '+t.name; }
   return ' · ♪ '+l.length+' доріжки';
 }
+// практика могла посилатись на власну асану, якої вже нема
+function pruneMissing(){
+  let changed=false;
+  state.sequences.forEach(s=>{
+    const before=s.items.length;
+    s.items=s.items.filter(i=>P[i.poseId]);
+    if(s.items.length!==before) changed=true;
+  });
+  if(changed) save();
+}
 function seqSeconds(seq){ return seq.items.reduce((a,i)=>a + i.sec*((i.both&&P[i.poseId].bi)?2:1), 0); }
 
 /* ============ 5. БІБЛІОТЕКА ============ */
 function renderLibrary(){
   const g=$('#libGrid'); g.innerHTML='';
   state.sequences.forEach(seq=>{
-    const cats=[...new Set(seq.items.map(i=>P[i.poseId].cat))].slice(0,4);
+    const cats=[...new Set(seq.items.flatMap(i=>catsOf(P[i.poseId])))].slice(0,4);
     const card=document.createElement('div'); card.className='card';
     card.innerHTML=`
-      <div class="aura" style="background:${CAT[P[seq.items[0].poseId].cat].g}"></div>
+      <div class="aura" style="background:${CAT[mainCat(P[seq.items[0].poseId])].g}"></div>
       <h3>${seq.title}</h3>
       <div class="meta mono">${human(seqSeconds(seq))} · ${seq.items.length} асан${trackName(seq)}</div>
       <div class="chips">${cats.map(c=>`<span class="chip">${CAT[c].ua}</span>`).join('')}</div>
@@ -1019,12 +1089,12 @@ function renderRibbon(){
     const el=document.createElement('div');
     el.className='slab'; el.dataset.idx=idx; el.style.minHeight=h+'px';
     el.innerHTML=`
-      <div class="bar" style="background:${CAT[p.cat].g}"></div>
+      <div class="bar" style="background:${CAT[mainCat(p)].g}"></div>
       <div class="grip" title="Перетягни">⠿</div>
-      <div class="orb" style="background:${CAT[p.cat].g}"></div>
+      <div class="orb" style="background:${CAT[mainCat(p)].g}"></div>
       <div class="names">
         <div class="nm">${p.ua}</div>
-        <div class="sa">${p.sa} · ${CAT[p.cat].ua}</div>
+        <div class="sa">${p.sa?p.sa+' · ':''}${catsOf(p).map(c=>CAT[c].ua).join(' · ')}</div>
       </div>
       ${p.bi?`<button class="side-toggle ${it.both?'on':''}" data-side="${idx}">2 сторони</button>`:''}
       <div class="dur">
@@ -1151,25 +1221,104 @@ function renderCats(){
 function renderPoseList(){
   const q=$('#poseSearch').value.trim().toLowerCase();
   const list=$('#poseList'); list.innerHTML='';
-  POSES.filter(p=>(sheetCat==='all'||p.cat===sheetCat) &&
-      (!q || p.ua.toLowerCase().includes(q) || p.sa.toLowerCase().includes(q)))
+  allPoses().filter(p=>(sheetCat==='all'||catsOf(p).includes(sheetCat)) &&
+      (!q || p.ua.toLowerCase().includes(q) || (p.sa||'').toLowerCase().includes(q)))
     .forEach(p=>{
+      const row=document.createElement('div'); row.className='pose-line';
       const b=document.createElement('button'); b.className='pose-row';
-      b.innerHTML=`<div class="orb" style="background:${CAT[p.cat].g}"></div>
+      b.innerHTML=`<div class="orb" style="background:${CAT[mainCat(p)].g}"></div>
         <div style="flex:1;min-width:0">
-          <div style="font-family:Fraunces,serif;font-size:16px">${p.ua}</div>
-          <div class="cue">${p.sa} · ${p.cue}</div>
+          <div style="font-family:Fraunces,serif;font-size:16px">${p.ua}${p.own?'<span class="ownmark">своя</span>':''}</div>
+          <div class="cue">${[p.sa, p.cue].filter(Boolean).join(' · ')}</div>
+          <div class="tagrow">${catsOf(p).map(c=>`<span class="tag" style="background:${CAT[c].g}"></span>${CAT[c].ua}`).join('')}</div>
         </div>
         <div class="mono" style="font-size:13px;color:var(--ink-faint)">${p.d}с</div>`;
       b.onclick=()=>{
+        if(!draft){ toast('Спочатку відкрий редактор'); return; }
         draft.items.push({poseId:p.id, sec:p.d, both:!!p.bi});
         renderRibbon(); toast(p.ua+' додано');
       };
-      list.appendChild(b);
+      row.appendChild(b);
+      if(p.own){
+        const ed=document.createElement('button');
+        ed.className='btn btn-ghost btn-icon pose-edit'; ed.textContent='✎'; ed.title='Змінити';
+        ed.onclick=()=>openPoseForm(p);
+        row.appendChild(ed);
+      }
+      list.appendChild(row);
     });
   if(!list.children.length) list.innerHTML='<div class="empty">Нічого не знайшлось. Спробуй іншу назву.</div>';
 }
 $('#poseSearch').addEventListener('input',renderPoseList);
+
+/* ---- своя асана ---- */
+let pfEditing=null, pfCats=[];
+function renderPfCats(){
+  const box=$('#pfCats'); box.innerHTML='';
+  Object.entries(CAT).forEach(([k,v])=>{
+    const b=document.createElement('button'); b.className='cat'; b.textContent=v.ua;
+    b.setAttribute('aria-pressed', pfCats.includes(k));
+    b.onclick=()=>{
+      pfCats = pfCats.includes(k) ? pfCats.filter(x=>x!==k) : pfCats.concat(k);
+      renderPfCats();
+    };
+    box.appendChild(b);
+  });
+}
+function openPoseForm(p){
+  pfEditing = p || null;
+  pfCats = p ? catsOf(p).slice() : [];
+  $('#pfTitle').textContent = p ? 'Змінити асану' : 'Своя асана';
+  $('#pfUa').value = p ? p.ua : '';
+  $('#pfSa').value = p ? (p.sa||'') : '';
+  $('#pfCue').value = p ? (p.cue||'') : '';
+  $('#pfSec').value = p ? p.d : 40;
+  $('#pfBi').checked = p ? !!p.bi : false;
+  $('#pfDelete').style.display = p ? '' : 'none';
+  renderPfCats();
+  $('#poseForm').hidden = false;
+  $('#poseList').hidden = true;
+  $('#newPose').hidden = true;
+  $('#pfUa').focus();
+}
+function closePoseForm(){
+  $('#poseForm').hidden = true;
+  $('#poseList').hidden = false;
+  $('#newPose').hidden = false;
+  pfEditing=null;
+}
+$('#newPose').onclick=()=>openPoseForm(null);
+$('#pfCancel').onclick=closePoseForm;
+$('#pfSave').onclick=()=>{
+  const ua=$('#pfUa').value.trim();
+  if(!ua) return toast('Дай асані назву');
+  if(!pfCats.length) return toast('Постав хоча б один ярличок');
+  const rec={
+    id: pfEditing ? pfEditing.id : 'my-'+uid(),
+    ua, sa: $('#pfSa').value.trim(), cue: $('#pfCue').value.trim(),
+    cats: pfCats.slice(),
+    d: Math.max(5, Math.min(900, parseInt($('#pfSec').value,10)||40)),
+    bi: $('#pfBi').checked, own: true
+  };
+  state.poses = state.poses || [];
+  const i = state.poses.findIndex(x=>x.id===rec.id);
+  if(i>=0) state.poses[i]=rec; else state.poses.push(rec);
+  rebuildP(); save(); closePoseForm(); renderPoseList();
+  if(draft) renderRibbon();
+  renderLibrary();
+  toast(pfEditing ? 'Змінено' : 'Асану додано');
+};
+$('#pfDelete').onclick=()=>{
+  if(!pfEditing) return;
+  const used = state.sequences.filter(s=>s.items.some(i=>i.poseId===pfEditing.id));
+  if(used.length){
+    toast('Асана є у практиках: '+used.map(s=>s.title).join(', ')+' — спершу прибери її звідти');
+    return;
+  }
+  state.poses = state.poses.filter(x=>x.id!==pfEditing.id);
+  rebuildP(); save(); closePoseForm(); renderPoseList();
+  toast('Видалено');
+};
 
 /* ============ 6b. ГЕНЕРАТОР ============ */
 const FOCUS = {
@@ -1328,7 +1477,8 @@ $('#gapSec').onchange=e=>{ state.settings.gap=parseInt(e.target.value,10); save(
 $('#vibeOn').onchange=e=>{ state.settings.vibe = e.target.value==='1'; save(); if(state.settings.vibe) buzz(40); };
 $('#doExport').onclick=()=>{
   const data={v:1, saved:new Date().toISOString(),
-    sequences:state.sequences.filter(s=>!s.preset), log:state.log, settings:state.settings};
+    sequences:state.sequences.filter(s=>!s.preset), poses:state.poses||[],
+    log:state.log, settings:state.settings};
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:'application/json'}));
   a.download='dyhannia-'+isoLocal(new Date())+'.json'; a.click();
@@ -1342,6 +1492,12 @@ $('#importInput').onchange=e=>{
     try{
       const d=JSON.parse(r.result);
       if(!d.sequences) throw 0;
+      if(d.poses){
+        state.poses = state.poses || [];
+        const havep=new Set(state.poses.map(p=>p.id));
+        d.poses.forEach(p=>{ if(!havep.has(p.id)) state.poses.push(p); });
+        rebuildP();
+      }
       const mine=new Set(state.sequences.map(s=>s.id));
       d.sequences.forEach(s=>{ if(!mine.has(s.id)) state.sequences.push(s); });
       if(d.log) d.log.forEach(l=>{ if(!state.log.some(x=>x.date===l.date&&x.title===l.title&&x.sec===l.sec)) state.log.push(l); });
@@ -1481,7 +1637,7 @@ const Player = (()=>{
     $('#pSideWrap').innerHTML = st.side?`<span class="side">${st.side} сторона</span>`:'';
     $('#player').classList.toggle('is-gap', !!st.gap);
     $('#pCount').textContent=(i+1)+'/'+steps.length;
-    const c=CAT[st.p.cat].c;
+    const c=CAT[mainCat(st.p)].c;
     $('#breath').style.background = st.gap
       ? 'linear-gradient(150deg,rgba(255,255,255,.82),rgba(201,191,234,.42))'
       : `linear-gradient(150deg,${c[0]},${c[1]})`;
@@ -1632,13 +1788,17 @@ if(!reduce){
 async function save(){
   await store.set('yoga:sequences', state.sequences.filter(s=>!s.preset));
   await store.set('yoga:tracks', state.tracks);
+  await store.set('yoga:poses', state.poses||[]);
   await store.set('yoga:log', state.log);
   await store.set('yoga:settings', state.settings);
 }
 async function boot(){
-  const [seqs,trks,log,settings] = await Promise.all([
-    store.get('yoga:sequences'), store.get('yoga:tracks'), store.get('yoga:log'), store.get('yoga:settings')
+  const [seqs,trks,myPoses,log,settings] = await Promise.all([
+    store.get('yoga:sequences'), store.get('yoga:tracks'), store.get('yoga:poses'),
+    store.get('yoga:log'), store.get('yoga:settings')
   ]);
+  if(myPoses) state.poses = myPoses;
+  rebuildP();
   state.sequences = PRESETS.map(p=>({id:p.id,title:p.title,preset:true,
     items:p.items.map(([poseId,sec,both])=>({poseId,sec,both:!!both}))}));
   if(seqs&&seqs.length) state.sequences=state.sequences.concat(seqs);
@@ -1668,9 +1828,10 @@ async function boot(){
   $('#vibeOn').value=state.settings.vibe?'1':'0';
   $('#gapSec').value=state.settings.gap;
 
+  pruneMissing();
   renderCats(); renderLibrary(); renderTracks();
 }
-const BUILD = 11;
+const BUILD = 12;
 const BUILD_DATE = '16.08.2026';
 $('#buildInfo').textContent = 'збірка '+BUILD+' · '+BUILD_DATE;
 
