@@ -144,9 +144,19 @@ input,select{font-family:inherit;color:inherit}
   background:var(--glass-strong);border:1px solid var(--glass-line);box-shadow:var(--shade-2);
   backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
   transition:box-shadow .25s,transform .25s}
-.slab.dragging{opacity:.6;transform:scale(.985);box-shadow:var(--shade-3)}
+.slab.dragging{opacity:.85;transform:scale(.99);box-shadow:var(--shade-3);border-color:var(--rose);z-index:5;position:relative}
 .slab{flex-wrap:wrap}
-.slab .grip{width:22px;height:34px;flex:none;display:grid;place-items:center;cursor:grab;touch-action:none;color:var(--ink-faint);border-radius:6px}
+.slab .grip{width:30px;height:40px;flex:none;display:grid;place-items:center;cursor:grab;touch-action:none;
+  color:var(--ink-faint);border-radius:8px;font-size:15px;user-select:none;-webkit-user-select:none}
+.slab .grip:hover{background:rgba(255,255,255,.6);color:var(--ink)}
+.slab .names{cursor:grab;user-select:none;-webkit-user-select:none}
+.movebtns{display:flex;flex-direction:column;gap:2px;flex:none}
+.mv{width:26px;height:19px;border-radius:6px;display:grid;place-items:center;font-size:13px;line-height:1;
+  color:var(--ink-faint);border:1px solid var(--glass-line);background:rgba(255,255,255,.5)}
+.mv:hover:not(:disabled){background:#fff;color:var(--ink)}
+.mv:disabled{opacity:.28;cursor:default}
+body.reordering{cursor:grabbing;user-select:none;-webkit-user-select:none}
+body.reordering .slab{transition:none}
 .slab .grip:active{cursor:grabbing}
 .slab .orb{width:38px;height:38px;flex:none;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 6px 14px -6px rgba(46,36,48,.5)}
 .slab .names{flex:1 1 120px;min-width:0}
@@ -176,6 +186,7 @@ input,select{font-family:inherit;color:inherit}
 
   .slab{flex-wrap:wrap;row-gap:10px;padding:12px 12px 12px 14px}
   .slab .grip{order:0;flex:none}
+  .movebtns{order:0}
   .slab .orb{order:0;flex:none}
   .slab .names{order:1;flex:1 1 140px;min-width:0}
   .slab .side-toggle{order:2;flex:0 0 auto;margin-left:0}
@@ -351,7 +362,7 @@ h2.section{font-size:30px;margin:0 0 6px}
 @media (max-width:640px){
   .wrap{padding:24px 16px 100px}
   .sheet-panel{width:100%;top:auto;height:88vh;border-radius:var(--r-xl) var(--r-xl) 0 0;border-left:0}
-  .slab .grip{width:16px}
+  .slab .grip{width:26px}
   .slab [data-del]{width:32px;height:32px}
   .stat{min-width:80px;padding:10px 12px}
 }
@@ -1090,7 +1101,11 @@ function renderRibbon(){
     el.className='slab'; el.dataset.idx=idx; el.style.minHeight=h+'px';
     el.innerHTML=`
       <div class="bar" style="background:${CAT[mainCat(p)].g}"></div>
-      <div class="grip" title="Перетягни">⠿</div>
+      <div class="grip" title="Перетягни або скористайся стрілками">⠿</div>
+      <div class="movebtns">
+        <button class="mv" data-up="${idx}" title="Вище"${idx===0?' disabled':''}>⌃</button>
+        <button class="mv" data-down="${idx}" title="Нижче"${idx===draft.items.length-1?' disabled':''}>⌄</button>
+      </div>
       <div class="orb" style="background:${CAT[mainCat(p)].g}"></div>
       <div class="names">
         <div class="nm">${p.ua}</div>
@@ -1112,7 +1127,9 @@ function renderRibbon(){
 $('#ribbon').addEventListener('click',e=>{
   const t=e.target;
   const idx = n => parseInt(n,10);
-  if(t.dataset.del!==undefined){ draft.items.splice(idx(t.dataset.del),1); renderRibbon(); }
+  if(t.dataset.up!==undefined){ const i=idx(t.dataset.up); if(i>0){ const a=draft.items; [a[i-1],a[i]]=[a[i],a[i-1]]; renderRibbon(); } }
+  else if(t.dataset.down!==undefined){ const i=idx(t.dataset.down); const a=draft.items; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; renderRibbon(); } }
+  else if(t.dataset.del!==undefined){ draft.items.splice(idx(t.dataset.del),1); renderRibbon(); }
   else if(t.dataset.plus!==undefined){ const i=idx(t.dataset.plus); draft.items[i].sec=Math.min(900,draft.items[i].sec+5); renderRibbon(); }
   else if(t.dataset.minus!==undefined){ const i=idx(t.dataset.minus); draft.items[i].sec=Math.max(5,draft.items[i].sec-5); renderRibbon(); }
   else if(t.dataset.side!==undefined){ const i=idx(t.dataset.side); draft.items[i].both=!draft.items[i].both; renderRibbon(); }
@@ -1127,30 +1144,55 @@ $('#ribbon').addEventListener('change',e=>{
 
 /* перетягування — на pointer events, працює і на телефоні */
 function attachDrag(){
-  let dragEl=null;
-  $$('#ribbon .grip').forEach(grip=>{
-    grip.addEventListener('pointerdown',e=>{
-      e.preventDefault();
-      dragEl=grip.closest('.slab'); dragEl.classList.add('dragging');
-      grip.setPointerCapture(e.pointerId);
-      const move=ev=>{
-        const list=$('#ribbon');
-        const after=[...list.querySelectorAll('.slab:not(.dragging)')].find(s=>{
-          const b=s.getBoundingClientRect();
-          return ev.clientY < b.top + b.height/2;
-        });
-        if(after) list.insertBefore(dragEl,after); else list.appendChild(dragEl);
-      };
-      const up=()=>{
-        grip.removeEventListener('pointermove',move);
-        grip.removeEventListener('pointerup',up);
-        dragEl.classList.remove('dragging');
-        const order=[...$('#ribbon').querySelectorAll('.slab')].map(s=>parseInt(s.dataset.idx,10));
-        draft.items = order.map(i=>draft.items[i]);
-        dragEl=null; renderRibbon();
-      };
-      grip.addEventListener('pointermove',move);
-      grip.addEventListener('pointerup',up);
+  const list=$('#ribbon');
+  let dragEl=null, startY=0, moved=false, pid=null;
+
+  function begin(e, slab){
+    dragEl=slab; startY=e.clientY; moved=false; pid=e.pointerId;
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onEnd);
+    document.addEventListener('pointercancel', onEnd);
+  }
+  function onMove(ev){
+    if(!dragEl) return;
+    if(!moved){
+      if(Math.abs(ev.clientY-startY) < 4) return;   // це ще не рух, а просто дотик
+      moved=true;
+      dragEl.classList.add('dragging');
+      document.body.classList.add('reordering');
+    }
+    ev.preventDefault();
+    const others=[...list.querySelectorAll('.slab:not(.dragging)')];
+    const after=others.find(s=>{
+      const b=s.getBoundingClientRect();
+      return ev.clientY < b.top + b.height/2;
+    });
+    if(after){ if(after!==dragEl.nextSibling) list.insertBefore(dragEl, after); }
+    else if(list.lastElementChild!==dragEl) list.appendChild(dragEl);
+  }
+  function onEnd(){
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onEnd);
+    document.removeEventListener('pointercancel', onEnd);
+    document.body.classList.remove('reordering');
+    if(!dragEl){ return; }
+    dragEl.classList.remove('dragging');
+    if(moved){
+      const order=[...list.querySelectorAll('.slab')].map(s=>parseInt(s.dataset.idx,10));
+      draft.items = order.map(i=>draft.items[i]);
+      dragEl=null; renderRibbon();
+    } else dragEl=null;
+  }
+
+  // тягнути можна за ручку або за назву асани — усе, крім кнопок і поля тривалості
+  list.querySelectorAll('.slab').forEach(slab=>{
+    ['.grip','.names','.orb'].forEach(sel=>{
+      const zone=slab.querySelector(sel); if(!zone) return;
+      zone.style.touchAction='none';
+      zone.addEventListener('pointerdown', e=>{
+        if(e.button && e.button!==0) return;
+        begin(e, slab);
+      });
     });
   });
 }
@@ -1831,7 +1873,7 @@ async function boot(){
   pruneMissing();
   renderCats(); renderLibrary(); renderTracks();
 }
-const BUILD = 12;
+const BUILD = 13;
 const BUILD_DATE = '16.08.2026';
 $('#buildInfo').textContent = 'збірка '+BUILD+' · '+BUILD_DATE;
 
