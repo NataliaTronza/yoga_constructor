@@ -149,7 +149,7 @@ input,select{font-family:inherit;color:inherit}
 .slab .grip{width:30px;height:40px;flex:none;display:grid;place-items:center;cursor:grab;touch-action:none;
   color:var(--ink-faint);border-radius:8px;font-size:15px;user-select:none;-webkit-user-select:none}
 .slab .grip:hover{background:rgba(255,255,255,.6);color:var(--ink)}
-.slab .names{cursor:grab;user-select:none;-webkit-user-select:none}
+.slab .names{user-select:none;-webkit-user-select:none}
 .movebtns{display:flex;flex-direction:column;gap:2px;flex:none}
 .mv{width:26px;height:19px;border-radius:6px;display:grid;place-items:center;font-size:13px;line-height:1;
   color:var(--ink-faint);border:1px solid var(--glass-line);background:rgba(255,255,255,.5)}
@@ -166,11 +166,14 @@ body.reordering .slab{transition:none}
 .dur button{width:26px;height:26px;border-radius:50%;font-size:15px;color:var(--ink-soft);display:grid;place-items:center}
 .dur button:hover{background:#fff;color:var(--ink)}
 .dur input{width:42px;text-align:center;border:0;background:none;font-family:'IBM Plex Mono',monospace;font-size:14px;outline:none}
-.side-toggle{font-size:11px;padding:5px 10px;border-radius:999px;border:1px solid rgba(46,36,48,.10);
-  background:rgba(255,255,255,.34);color:var(--ink-faint);opacity:.75;transition:.2s}
-.side-toggle:hover{opacity:1}
-.side-toggle.on{background:rgba(255,255,255,.8);color:var(--ink-soft);border-color:rgba(46,36,48,.16);opacity:1;
-  box-shadow:inset 0 1px 0 #fff}
+.sideseg{display:flex;flex:none;gap:1px;padding:2px;border-radius:999px;
+  background:rgba(255,255,255,.3);border:1px solid rgba(46,36,48,.08)}
+.sg{font-size:10.5px;letter-spacing:.02em;padding:4px 9px;border-radius:999px;white-space:nowrap;
+  color:var(--ink-faint);opacity:.72;transition:.2s}
+.sg:hover{opacity:1}
+.sg.on{background:#fff;color:var(--ink-soft);opacity:1;box-shadow:var(--shade-1),inset 0 1px 0 #fff}
+.slab .grip{background:rgba(255,255,255,.4);border:1px solid rgba(46,36,48,.07)}
+.rowbtns .btn-icon:disabled{opacity:.25;cursor:default}
 .bar{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px}
 .empty{padding:34px;text-align:center;border-radius:var(--r-l);border:1px dashed rgba(46,36,48,.18);color:var(--ink-soft);background:rgba(255,255,255,.3)}
 .editor-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:20px}
@@ -189,7 +192,7 @@ body.reordering .slab{transition:none}
   .movebtns{order:0}
   .slab .orb{order:0;flex:none}
   .slab .names{order:1;flex:1 1 140px;min-width:0}
-  .slab .side-toggle{order:2;flex:0 0 auto;margin-left:0}
+  .slab .sideseg{order:2;flex:0 0 auto;margin-left:0}
   .slab .dur{order:3;flex:0 0 auto;margin-left:auto}
   .slab .rowbtns{order:4;flex:none}
 
@@ -200,7 +203,7 @@ body.reordering .slab{transition:none}
 }
 @media (max-width:430px){
   /* зовсім вузько: керування тривалістю теж на свій рядок */
-  .slab .side-toggle{order:2}
+  .slab .sideseg{order:2}
   .slab .dur{order:3;margin-left:0}
   .slab .rowbtns{order:4;margin-left:auto}
 }
@@ -337,6 +340,7 @@ h2.section{font-size:30px;margin:0 0 6px}
   background:var(--g-flow);box-shadow:0 20px 40px -18px rgba(46,36,48,.5);font-size:32px;color:#fff}
 
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);z-index:100;opacity:0;
+  max-width:min(92vw,420px);text-align:center;line-height:1.45;
   padding:12px 22px;border-radius:999px;background:var(--ink);color:var(--porcelain);font-size:14px;
   box-shadow:var(--shade-3);transition:.35s;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%)}
@@ -363,6 +367,7 @@ h2.section{font-size:30px;margin:0 0 6px}
   .wrap{padding:24px 16px 100px}
   .sheet-panel{width:100%;top:auto;height:88vh;border-radius:var(--r-xl) var(--r-xl) 0 0;border-left:0}
   .slab .grip{width:26px}
+  .sg{font-size:10px;padding:4px 7px}
   .slab .rowbtns .btn-icon{width:32px;height:32px}
   .stat{min-width:80px;padding:10px 12px}
 }
@@ -1168,7 +1173,18 @@ function pruneMissing(){
   });
   if(changed) save();
 }
-function seqSeconds(seq){ return seq.items.reduce((a,i)=>a + i.sec*((i.both&&P[i.poseId].bi)?2:1), 0); }
+// сторона асани: 'both' | 'r' | 'l', або null якщо поза симетрична
+// старі записи зберігали лише прапорець both — переводимо на льоту
+function sideOf(it){
+  const p = P[it.poseId];
+  if(!p || !p.bi) return null;
+  if(it.side==='both' || it.side==='r' || it.side==='l') return it.side;
+  return it.both===false ? 'r' : 'both';
+}
+const SIDE_UA = {both:'обидві', r:'права', l:'ліва'};
+function seqSeconds(seq){
+  return seq.items.reduce((a,i)=>a + i.sec*(sideOf(i)==='both' ? 2 : 1), 0);
+}
 
 /* ============ 5. БІБЛІОТЕКА ============ */
 let animateCards = true;   // каскад програється при вході на вкладку, не після кожного збереження
@@ -1282,14 +1298,17 @@ function renderRibbon(){
         <div class="nm">${p.ua}</div>
         <div class="sa">${p.sa?p.sa+' · ':''}${catsOf(p).map(c=>CAT[c].ua).join(' · ')}</div>
       </div>
-      ${p.bi?`<button class="side-toggle ${it.both?'on':''}" data-side="${idx}">2 сторони</button>`:''}
+      ${p.bi?`<div class="sideseg" role="group" aria-label="Сторона">${
+        ['both','r','l'].map(s=>`<button class="sg${sideOf(it)===s?' on':''}" data-side="${idx}:${s}">${SIDE_UA[s]}</button>`).join('')
+      }</div>`:''}
       <div class="dur">
         <button data-minus="${idx}">−</button>
         <input class="mono" type="number" min="5" max="900" step="5" value="${it.sec}" data-sec="${idx}">
         <button data-plus="${idx}">+</button>
       </div>
       <div class="rowbtns">
-        <button class="btn btn-ghost btn-icon" data-dup="${idx}" title="Дублювати">⧉</button>
+        <button class="btn btn-ghost btn-icon" data-dup="${idx}" title="Дублювати поруч">⧉</button>
+        <button class="btn btn-ghost btn-icon" data-bottom="${idx}" title="Перенести в кінець"${idx===draft.items.length-1?' disabled':''}>⤓</button>
         <button class="btn btn-ghost btn-icon" data-del="${idx}" title="Прибрати">✕</button>
       </div>`;
     r.appendChild(el);
@@ -1305,14 +1324,27 @@ $('#ribbon').addEventListener('click',e=>{
   if(t.dataset.dup!==undefined){
     const i=idx(t.dataset.dup);
     draft.items.splice(i+1, 0, JSON.parse(JSON.stringify(draft.items[i])));
-    freshIdx=i+1; renderRibbon(); toast('Продубльовано');
+    freshIdx=i+1; renderRibbon();
+    toast('Продубльовано');
+  }
+  else if(t.dataset.bottom!==undefined){
+    const i=idx(t.dataset.bottom), a=draft.items;
+    if(i<a.length-1){
+      a.push(a.splice(i,1)[0]);
+      freshIdx=a.length-1; renderRibbon(); toast('У кінець');
+    }
   }
   else if(t.dataset.up!==undefined){ const i=idx(t.dataset.up); if(i>0){ const a=draft.items; [a[i-1],a[i]]=[a[i],a[i-1]]; renderRibbon(); } }
   else if(t.dataset.down!==undefined){ const i=idx(t.dataset.down); const a=draft.items; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; renderRibbon(); } }
   else if(t.dataset.del!==undefined){ draft.items.splice(idx(t.dataset.del),1); renderRibbon(); }
   else if(t.dataset.plus!==undefined){ const i=idx(t.dataset.plus); draft.items[i].sec=Math.min(900,draft.items[i].sec+5); renderRibbon(); }
   else if(t.dataset.minus!==undefined){ const i=idx(t.dataset.minus); draft.items[i].sec=Math.max(5,draft.items[i].sec-5); renderRibbon(); }
-  else if(t.dataset.side!==undefined){ const i=idx(t.dataset.side); draft.items[i].both=!draft.items[i].both; renderRibbon(); }
+  else if(t.dataset.side!==undefined){
+    const [n,s]=t.dataset.side.split(':');
+    const it=draft.items[idx(n)];
+    it.side=s; delete it.both;
+    renderRibbon();
+  }
 });
 $('#ribbon').addEventListener('change',e=>{
   if(e.target.dataset.sec!==undefined){
@@ -1336,7 +1368,7 @@ function attachDrag(){
   function onMove(ev){
     if(!dragEl) return;
     if(!moved){
-      if(Math.abs(ev.clientY-startY) < 4) return;   // це ще не рух, а просто дотик
+      if(Math.abs(ev.clientY-startY) < 10) return;   // це ще не рух, а просто дотик
       moved=true;
       dragEl.classList.add('dragging');
       document.body.classList.add('reordering');
@@ -1364,15 +1396,14 @@ function attachDrag(){
     } else dragEl=null;
   }
 
-  // тягнути можна за ручку або за назву асани — усе, крім кнопок і поля тривалості
+  // тягнути можна ТІЛЬКИ за ручку ⠿ — інакше прокрутка сторінки
+  // пальцем по смузі випадково перемішувала асани
   list.querySelectorAll('.slab').forEach(slab=>{
-    ['.grip','.names','.orb'].forEach(sel=>{
-      const zone=slab.querySelector(sel); if(!zone) return;
-      zone.style.touchAction='none';
-      zone.addEventListener('pointerdown', e=>{
-        if(e.button && e.button!==0) return;
-        begin(e, slab);
-      });
+    const zone=slab.querySelector('.grip'); if(!zone) return;
+    zone.style.touchAction='none';
+    zone.addEventListener('pointerdown', e=>{
+      if(e.button && e.button!==0) return;
+      begin(e, slab);
     });
   });
 }
@@ -1457,7 +1488,7 @@ function renderPoseList(){
         <div class="mono" style="font-size:13px;color:var(--ink-faint)">${p.d}с</div>`;
       b.onclick=()=>{
         if(!draft){ toast('Спочатку відкрий редактор'); return; }
-        draft.items.push({poseId:p.id, sec:p.d, both:!!p.bi});
+        draft.items.push({poseId:p.id, sec:p.d, side:p.bi?'both':null});
         freshIdx=draft.items.length-1;
         renderRibbon(); toast(p.ua+' додано');
       };
@@ -1919,7 +1950,10 @@ const Player = (()=>{
     const out=[];
     s.items.forEach(it=>{
       const p=P[it.poseId];
-      if(it.both && p.bi){ out.push({p,sec:it.sec,side:'права'}); out.push({p,sec:it.sec,side:'ліва'}); }
+      const sd = sideOf(it);
+      if(sd==='both'){ out.push({p,sec:it.sec,side:'права'}); out.push({p,sec:it.sec,side:'ліва'}); }
+      else if(sd==='r') out.push({p,sec:it.sec,side:'права'});
+      else if(sd==='l') out.push({p,sec:it.sec,side:'ліва'});
       else out.push({p,sec:it.sec,side:null});
     });
     const g = state.settings.gap|0;
@@ -2171,8 +2205,8 @@ async function boot(){
   pruneMissing();
   renderCats(); renderLibrary(); renderTracks();
 }
-const BUILD = 15;
-const BUILD_DATE = '23.10.2026';
+const BUILD = 16;
+const BUILD_DATE = '25.10.2026';
 $('#buildInfo').textContent = 'збірка '+BUILD+' · '+BUILD_DATE;
 
 boot().then(()=>moveTabPill());
